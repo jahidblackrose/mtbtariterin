@@ -34,7 +34,7 @@ const Index = () => {
         {/* Title with mline separator */}
         <div className="mb-6">
           <h1 className="mb-4 text-3xl md:text-4xl font-bold text-mtb-primary">
-            MTB Torit e-Rin
+            Tarit Loan Application
           </h1>
           <div className="flex justify-center mb-4">
             <img src={mlineLogo} alt="" className="w-24 h-6 opacity-60" />
