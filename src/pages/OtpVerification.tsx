@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { ArrowLeft, Shield, RefreshCw } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import mtvbLogo from "@/assets/mtvb_logo-2.png";
 
@@ -72,11 +73,16 @@ const OtpVerification = () => {
           <div className="max-w-md mx-auto px-4">
             {/* MTB Logo */}
             <div className="text-center mb-8 animate-fade-in">
-              <img 
-                src={mtvbLogo} 
-                alt="MTB Neo" 
-                className="h-16 mx-auto mb-4 drop-shadow-lg"
-              />
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <img 
+                  src={mtvbLogo} 
+                  alt="MTB Neo" 
+                  className="h-16 drop-shadow-lg"
+                />
+              </div>
+              <div className="flex justify-center">
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
@@ -96,7 +102,7 @@ const OtpVerification = () => {
           </Button>
 
           {/* OTP Verification Card */}
-          <Card className="banking-card-elevated animate-slide-up bg-white">
+          <Card className="banking-card-elevated animate-slide-up">
             <CardHeader className="text-center">
               <div className="w-16 h-16 bg-[#00A651]/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-8 h-8 text-[#00A651]" />

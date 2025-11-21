@@ -17,6 +17,7 @@ import {
   XCircle
 } from "lucide-react";
 import { BilingualText, LanguageToggle } from "@/components/BilingualText";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import mtbLogo from "@/assets/mtvb_logo.png";
 
@@ -94,7 +95,8 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
                   <LanguageToggle className="bg-white/20 text-white hover:bg-white/30 border-white/30" />
                   <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/20">
                     <LogOut className="w-4 h-4 mr-2" />
@@ -111,7 +113,7 @@ const Dashboard = () => {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             {/* Quick Actions */}
-            <Card className="banking-card-elevated bg-white">
+            <Card className="banking-card-elevated">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Plus className="w-5 h-5 text-[#00A651]" />
@@ -171,7 +173,7 @@ const Dashboard = () => {
             </Card>
 
             {/* Existing Loans */}
-            <Card className="banking-card-elevated bg-white">
+            <Card className="banking-card-elevated">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <FileText className="w-5 h-5 text-[#00A651]" />
@@ -238,7 +240,7 @@ const Dashboard = () => {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* User Profile Card */}
-            <Card className="banking-card-elevated bg-white">
+            <Card className="banking-card-elevated">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <User className="w-5 h-5 text-[#00A651]" />
@@ -271,7 +273,7 @@ const Dashboard = () => {
             </Card>
 
             {/* Quick Stats */}
-            <Card className="banking-card-elevated bg-white">
+            <Card className="banking-card-elevated">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">
                   <BilingualText english="Quick Stats" bengali="দ্রুত পরিসংখ্যান" />

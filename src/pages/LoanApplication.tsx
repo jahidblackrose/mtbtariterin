@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { StepIndicator } from "@/components/StepIndicator";
 import { PersonalInfoStep } from "@/components/loan-steps/PersonalInfoStep";
 import { AddressStep } from "@/components/loan-steps/AddressStep";
@@ -105,7 +106,7 @@ const LoanApplication = () => {
               </div>
             </div>
             
-            <div className="w-16" /> {/* Spacer for alignment */}
+            <ThemeToggle />
           </div>
           
           {/* Progress Bar */}
