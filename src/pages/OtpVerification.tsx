@@ -6,7 +6,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { ArrowLeft, Shield, RefreshCw } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { toast } from "@/hooks/use-toast";
-import mtbLogo from "@/assets/mtvb_logo.png";
+import mtvbLogo from "@/assets/mtvb_logo-2.png";
 
 const OtpVerification = () => {
   const [otp, setOtp] = useState("");
@@ -60,9 +60,31 @@ const OtpVerification = () => {
     : accountNumber?.replace(/(\d{4})\d{6}(\d{3})/, "$1******$2");
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="banking-container">
-        <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-background">
+      {/* MTB Neo Style Header */}
+      <div className="mtb-neo-header">
+        <div className="organic-shape organic-shape-1" />
+        <div className="organic-shape organic-shape-2" />
+        <div className="organic-shape organic-shape-3" />
+        <div className="organic-shape organic-shape-4" />
+        
+        <div className="relative z-10 py-12">
+          <div className="max-w-md mx-auto px-4">
+            {/* MTB Logo */}
+            <div className="text-center mb-8 animate-fade-in">
+              <img 
+                src={mtvbLogo} 
+                alt="MTB Neo" 
+                className="h-16 mx-auto mb-4 drop-shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="banking-container -mt-20 relative z-20">
+        <div className="max-w-md mx-auto px-4">
           {/* Back Button */}
           <Button 
             variant="ghost" 
@@ -74,17 +96,12 @@ const OtpVerification = () => {
           </Button>
 
           {/* OTP Verification Card */}
-          <Card className="banking-card-elevated animate-slide-up">
+          <Card className="banking-card-elevated animate-slide-up bg-white">
             <CardHeader className="text-center">
-              {/* MTB Logo */}
-              <div className="flex justify-center mb-4">
-                <img src={mtbLogo} alt="MTB Logo" className="h-12" />
+              <div className="w-16 h-16 bg-[#00A651]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-[#00A651]" />
               </div>
-              <div className="mline-separator w-16 mx-auto mb-4"></div>
-              <div className="w-16 h-16 bg-mtb-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-mtb-primary" />
-              </div>
-              <CardTitle>
+              <CardTitle className="text-xl">
                 <BilingualText english="OTP Verification" bengali="ওটিপি যাচাইকরণ" />
               </CardTitle>
               <CardDescription className="text-center">
@@ -117,7 +134,7 @@ const OtpVerification = () => {
               <Button 
                 onClick={handleVerifyOtp} 
                 disabled={isLoading || otp.length !== 6}
-                className="w-full h-12 gradient-primary"
+                className="w-full h-12 bg-[#00A651] hover:bg-[#008F45] text-white"
                 size="lg"
               >
                 {isLoading ? (

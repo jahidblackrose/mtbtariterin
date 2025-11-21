@@ -72,42 +72,49 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="banking-container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={mtbLogo} alt="MTB Logo" className="h-8" />
-              <div className="mline-separator-vertical h-8"></div>
-              <div>
-                <h1 className="text-xl font-bold text-mtb-primary">
-                  <BilingualText english="Torit e-Rin" bengali="তরিৎ ই-রিন" />
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  <BilingualText english="Welcome back" bengali="স্বাগতম" />
-                </p>
+      {/* MTB Neo Style Header */}
+      <div className="mtb-neo-header">
+        <div className="organic-shape organic-shape-1" />
+        <div className="organic-shape organic-shape-2" />
+        <div className="organic-shape organic-shape-3" />
+        <div className="organic-shape organic-shape-4" />
+        
+        <div className="relative z-10">
+          <header className="py-6">
+            <div className="banking-container">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <img src={mtbLogo} alt="MTB Logo" className="h-10 drop-shadow-lg" />
+                  <div>
+                    <h1 className="text-xl font-bold text-white drop-shadow">
+                      <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
+                    </h1>
+                    <p className="text-sm text-white/90 drop-shadow">
+                      <BilingualText english="Welcome back" bengali="স্বাগতম" />
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <LanguageToggle className="bg-white/20 text-white hover:bg-white/30 border-white/30" />
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/20">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <BilingualText english="Logout" bengali="লগআউট" />
+                  </Button>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <LanguageToggle className="bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground" />
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                <BilingualText english="Logout" bengali="লগআউট" />
-              </Button>
-            </div>
-          </div>
+          </header>
         </div>
-      </header>
+      </div>
 
-      <div className="banking-container py-8">
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Main Actions */}
+      <div className="banking-container py-8 -mt-10 relative z-20">
+        <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             {/* Quick Actions */}
-            <Card className="banking-card">
+            <Card className="banking-card-elevated bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Plus className="w-5 h-5 text-[#00A651]" />
                   <BilingualText english="Loan Services" bengali="ঋণ সেবা" />
                 </CardTitle>
                 <CardDescription>
@@ -121,16 +128,18 @@ const Dashboard = () => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Button 
                     onClick={() => navigate("/loan-application")}
-                    className="h-16 gradient-primary text-left justify-start"
+                    className="h-20 bg-[#00A651] hover:bg-[#008F45] text-white text-left justify-start rounded-xl"
                     size="lg"
                   >
                     <div className="flex items-center gap-3">
-                      <Plus className="w-6 h-6" />
+                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                        <Plus className="w-6 h-6" />
+                      </div>
                       <div>
-                        <div className="font-medium">
+                        <div className="font-semibold text-base">
                           <BilingualText english="Apply New Loan" bengali="নতুন ঋণের আবেদন" />
                         </div>
-                        <div className="text-xs text-primary-foreground/80">
+                        <div className="text-xs text-white/80">
                           <BilingualText english="Quick & Easy Process" bengali="দ্রুত ও সহজ প্রক্রিয়া" />
                         </div>
                       </div>
@@ -140,13 +149,15 @@ const Dashboard = () => {
                   <Button 
                     variant="outline"
                     onClick={() => navigate("/loan-calculator")}
-                    className="h-16 text-left justify-start"
+                    className="h-20 text-left justify-start rounded-xl border-2"
                     size="lg"
                   >
                     <div className="flex items-center gap-3">
-                      <DollarSign className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 rounded-full bg-[#00A651]/10 flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-[#00A651]" />
+                      </div>
                       <div>
-                        <div className="font-medium">
+                        <div className="font-semibold text-base">
                           <BilingualText english="Loan Calculator" bengali="ঋণ ক্যালকুলেটর" />
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -160,10 +171,10 @@ const Dashboard = () => {
             </Card>
 
             {/* Existing Loans */}
-            <Card className="banking-card">
+            <Card className="banking-card-elevated bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="w-5 h-5 text-[#00A651]" />
                   <BilingualText english="My Loan Accounts" bengali="আমার ঋণ অ্যাকাউন্টসমূহ" />
                 </CardTitle>
                 <CardDescription>
@@ -176,7 +187,7 @@ const Dashboard = () => {
               <CardContent>
                 <div className="space-y-4">
                   {existingLoans.map((loan, index) => (
-                    <div key={loan.id} className="p-4 rounded-lg border bg-card/50">
+                    <div key={loan.id} className="p-5 rounded-xl border-2 bg-card/50 hover:bg-card transition-all">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -227,10 +238,10 @@ const Dashboard = () => {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* User Profile Card */}
-            <Card className="banking-card">
+            <Card className="banking-card-elevated bg-white">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="w-5 h-5" />
+                  <User className="w-5 h-5 text-[#00A651]" />
                   <BilingualText english="Account Info" bengali="অ্যাকাউন্ট তথ্য" />
                 </CardTitle>
               </CardHeader>
@@ -260,7 +271,7 @@ const Dashboard = () => {
             </Card>
 
             {/* Quick Stats */}
-            <Card className="banking-card">
+            <Card className="banking-card-elevated bg-white">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">
                   <BilingualText english="Quick Stats" bengali="দ্রুত পরিসংখ্যান" />

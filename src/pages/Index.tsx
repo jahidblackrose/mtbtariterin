@@ -12,38 +12,40 @@ const Index = () => {
   }, [navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background relative overflow-hidden">
-      {/* Decorative mline elements */}
-      <div className="absolute top-10 left-10 opacity-20">
-        <img src={mlineLogo} alt="" className="w-20 h-20" />
-      </div>
-      <div className="absolute bottom-10 right-10 opacity-20 rotate-180">
-        <img src={mlineLogo} alt="" className="w-16 h-16" />
-      </div>
-      
-      <div className="text-center z-10">
-        {/* MTB Logo */}
-        <div className="mb-8 flex justify-center">
-          <img 
-            src={mtvbLogo} 
-            alt="Mutual Trust Bank PLC" 
-            className="h-16 md:h-20 w-auto"
-          />
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      {/* MTB Neo Style Header */}
+      <div className="mtb-neo-header w-full">
+        <div className="organic-shape organic-shape-1" />
+        <div className="organic-shape organic-shape-2" />
+        <div className="organic-shape organic-shape-3" />
+        <div className="organic-shape organic-shape-4" />
         
-        {/* Title with mline separator */}
-        <div className="mb-6">
-          <h1 className="mb-4 text-3xl md:text-4xl font-bold text-mtb-primary">
-            Tarit Loan Application
-          </h1>
-          <div className="flex justify-center mb-4">
-            <img src={mlineLogo} alt="" className="w-24 h-6 opacity-60" />
+        <div className="relative z-10 flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            {/* MTB Logo */}
+            <div className="mb-8 flex justify-center animate-fade-in">
+              <img 
+                src={mtvbLogo} 
+                alt="Mutual Trust Bank PLC" 
+                className="h-20 md:h-24 w-auto drop-shadow-lg"
+              />
+            </div>
+            
+            {/* Title with mline separator */}
+            <div className="mb-6 animate-slide-up">
+              <h1 className="mb-4 text-3xl md:text-5xl font-bold text-white drop-shadow-md">
+                Tarit Loan Application
+              </h1>
+              <div className="flex justify-center mb-4">
+                <img src={mlineLogo} alt="" className="w-28 h-7 opacity-90 drop-shadow" />
+              </div>
+            </div>
+            
+            <p className="text-lg md:text-xl text-white/90 drop-shadow">
+              Redirecting to login...
+            </p>
           </div>
         </div>
-        
-        <p className="text-lg md:text-xl text-muted-foreground">
-          Redirecting to login...
-        </p>
       </div>
     </div>
   );
