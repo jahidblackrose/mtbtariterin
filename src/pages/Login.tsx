@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Smartphone, CreditCard, Shield } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { toast } from "@/hooks/use-toast";
+import mtvbLogo from "@/assets/mtvb_logo-2.png";
 
 const Login = () => {
   const [accountNumber, setAccountNumber] = useState("");
@@ -40,36 +41,41 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="banking-container">
-        <div className="max-w-md mx-auto">
-          {/* MTB Logo and Header */}
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CreditCard className="w-8 h-8 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              <BilingualText english="MTB Torit e-Rin" bengali="এমটিবি তরিৎ ই-রিন" />
-            </h1>
-            <p className="text-muted-foreground">
-              <BilingualText 
-                english="Easy loan application and management" 
-                bengali="সহজ ঋণের আবেদন ও ব্যবস্থাপনা" 
+    <div className="min-h-screen bg-background">
+      {/* MTB Neo Style Header */}
+      <div className="mtb-neo-header">
+        <div className="organic-shape organic-shape-1" />
+        <div className="organic-shape organic-shape-2" />
+        <div className="organic-shape organic-shape-3" />
+        <div className="organic-shape organic-shape-4" />
+        
+        <div className="relative z-10 py-12">
+          <div className="max-w-md mx-auto px-4">
+            {/* MTB Logo */}
+            <div className="text-center mb-8 animate-fade-in">
+              <img 
+                src={mtvbLogo} 
+                alt="MTB Neo" 
+                className="h-16 mx-auto mb-4 drop-shadow-lg"
               />
-            </p>
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Login Card */}
-          <Card className="banking-card-elevated animate-slide-up">
+      {/* Login Card */}
+      <div className="banking-container -mt-20 relative z-20">
+        <div className="max-w-md mx-auto px-4">
+
+          <Card className="banking-card-elevated animate-slide-up shadow-elevated">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                <BilingualText english="Secure Login" bengali="নিরাপদ লগইন" />
+              <CardTitle className="text-xl">
+                <BilingualText english="Log In" bengali="লগইন" />
               </CardTitle>
               <CardDescription>
                 <BilingualText 
-                  english="Enter your account details to access your loan services" 
-                  bengali="আপনার ঋণ সেবা অ্যাক্সেস করতে অ্যাকাউন্টের তথ্য প্রবেশ করান" 
+                  english="Enter your credentials to access Tarit Loan services" 
+                  bengali="তরিৎ ঋণ সেবা অ্যাক্সেস করতে তথ্য প্রবেশ করান" 
                 />
               </CardDescription>
             </CardHeader>
@@ -129,13 +135,13 @@ const Login = () => {
               <Button 
                 onClick={handleLogin} 
                 disabled={isLoading}
-                className="w-full h-12 gradient-primary"
+                className="w-full h-12 bg-[#00A651] hover:bg-[#008F45] text-white"
                 size="lg"
               >
                 {isLoading ? (
                   <BilingualText english="Logging in..." bengali="লগইন করা হচ্ছে..." />
                 ) : (
-                  <BilingualText english="Login" bengali="লগইন" />
+                  <BilingualText english="Log In" bengali="লগইন" />
                 )}
               </Button>
 
@@ -157,8 +163,9 @@ const Login = () => {
           </Card>
 
           {/* Security Note */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground">
+          <div className="mt-6 text-center pb-8">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
+              <Shield className="w-3 h-3" />
               <BilingualText 
                 english="Your information is protected with bank-grade security" 
                 bengali="আপনার তথ্য ব্যাংক-মানের নিরাপত্তায় সুরক্ষিত" 
