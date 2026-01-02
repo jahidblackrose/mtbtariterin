@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -15,7 +15,7 @@ import { LoanSummaryStep } from "@/components/loan-steps/LoanSummaryStep";
 import { FaceVerificationStep } from "@/components/loan-steps/FaceVerificationStep";
 import { TermsConditionsStep } from "@/components/loan-steps/TermsConditionsStep";
 import { ApplicationConfirmationStep } from "@/components/loan-steps/ApplicationConfirmationStep";
-import mtbLogo from "@/assets/mtvb_logo.png";
+import mtbLogo from "@/assets/mtb-logo-full.png";
 
 const STEPS = [
   { id: 1, title: "Personal Info", titleBengali: "ব্যক্তিগত তথ্য" },
@@ -76,25 +76,27 @@ const LoanApplication = () => {
   const progressPercentage = (currentStep / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen tech-background">
       {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-10">
+      <header className="border-b border-border/50 bg-card/80 backdrop-blur-md sticky top-0 z-10">
         <div className="banking-container py-4">
           <div className="flex items-center justify-between">
             <Button 
               variant="ghost" 
               onClick={handlePrevious}
-              className="p-0 h-auto hover:bg-transparent"
+              className="p-0 h-auto hover:bg-transparent text-foreground"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               <BilingualText english="Back" bengali="পিছনে" />
             </Button>
             
             <div className="text-center flex items-center gap-3">
-              <img src={mtbLogo} alt="MTB Logo" className="h-6" />
-              <div className="mline-separator-vertical h-6"></div>
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                <img src={mtbLogo} alt="MTB Logo" className="h-8" />
+              </div>
+              <div className="mline-separator-vertical h-8"></div>
               <div>
-                <h1 className="text-lg font-semibold text-mtb-primary">
+                <h1 className="text-lg font-semibold text-foreground">
                   <BilingualText english="Loan Application" bengali="ঋণের আবেদন" />
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -111,7 +113,7 @@ const LoanApplication = () => {
           
           {/* Progress Bar */}
           <div className="mt-4">
-            <Progress value={progressPercentage} className="h-2" />
+            <Progress value={progressPercentage} className="h-2 bg-muted" />
           </div>
         </div>
       </header>
@@ -124,10 +126,14 @@ const LoanApplication = () => {
           </div>
 
           {/* Current Step Card */}
-          <Card className="banking-card-elevated">
-            <CardHeader>
+          <Card className="banking-card-glass border-border/50">
+            <CardHeader className="border-b border-border/30">
               <div className="flex items-center gap-3">
-                <div className="step-indicator step-indicator-active">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                  currentStep === STEPS.length 
+                    ? 'bg-mtb-success text-white' 
+                    : 'bg-gradient-to-r from-mtb-teal to-mtb-green text-white'
+                }`}>
                   {currentStep === STEPS.length ? (
                     <CheckCircle className="w-5 h-5" />
                   ) : (
@@ -135,13 +141,13 @@ const LoanApplication = () => {
                   )}
                 </div>
                 <div>
-                  <CardTitle>
+                  <CardTitle className="text-foreground">
                     <BilingualText 
                       english={STEPS[currentStep - 1].title}
                       bengali={STEPS[currentStep - 1].titleBengali}
                     />
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-muted-foreground">
                     <BilingualText 
                       english="Please fill in the required information"
                       bengali="প্রয়োজনীয় তথ্য পূরণ করুন"
@@ -150,7 +156,7 @@ const LoanApplication = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {renderStep()}
             </CardContent>
           </Card>
@@ -161,11 +167,11 @@ const LoanApplication = () => {
               {STEPS.map((step) => (
                 <div
                   key={step.id}
-                  className={`w-3 h-3 rounded-full ${
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
                     step.id === currentStep
-                      ? "bg-primary"
+                      ? "bg-mtb-teal scale-125"
                       : step.id < currentStep
-                      ? "bg-secondary"
+                      ? "bg-mtb-green"
                       : "bg-muted"
                   }`}
                 />
