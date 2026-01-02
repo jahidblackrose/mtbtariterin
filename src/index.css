@@ -2,41 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* MTB Banking Design System - Professional, Trustworthy, Bilingual-Friendly */
+/* MTB Banking Design System - Premium Digital Banking Experience */
 
 @layer base {
   :root {
-    /* MTB Official Brand Colors - HSL Format */
-    --mtb-primary: 221 59% 30%; /* #1F3D7A - MTB Corporate Blue */
-    --mtb-secondary: 221 55% 40%; /* #2E509C - Lighter MTB Blue */
-    --mtb-accent: 149 100% 33%; /* #00A651 - Banking/Trust Green */
-    --mtb-neutral: 216 33% 97%; /* #F5F7FA - Background Grey */
-    --mtb-text: 0 0% 20%; /* #333333 - Text Dark */
-    --mtb-border: 216 18% 90%; /* #E1E5EB - Border Light */
+    /* MTB M-Line Gradient Colors (from rainbow gradient logo) */
+    --mtb-gradient-teal: 174 71% 36%;     /* #1B9E9E */
+    --mtb-gradient-green: 149 100% 33%;   /* #00A651 */
+    --mtb-gradient-orange: 27 91% 56%;    /* #F59E42 */
+    --mtb-gradient-pink: 345 79% 52%;     /* #E94E77 */
+    --mtb-gradient-magenta: 320 58% 51%;  /* #C73E8C */
+    
+    /* MTB Logo Colors */
+    --mtb-logo-purple: 280 45% 35%;       /* Purple from logo */
+    --mtb-logo-teal: 180 60% 40%;         /* Teal from logo */
+    --mtb-logo-green: 149 100% 33%;       /* Green from logo */
+    
+    /* MTB Official Brand Colors */
+    --mtb-primary: 221 59% 30%;           /* #1F3D7A - MTB Corporate Blue */
+    --mtb-secondary: 221 55% 40%;         /* #2E509C - Lighter MTB Blue */
+    --mtb-accent: 149 100% 33%;           /* #00A651 - Banking/Trust Green */
+    --mtb-neutral: 216 33% 97%;           /* #F5F7FA - Background Grey */
+    --mtb-text: 220 15% 20%;              /* #2D3142 - Text Dark */
+    --mtb-border: 216 18% 90%;            /* #E1E5EB - Border Light */
 
     /* Core Banking Colors */
-    --background: 0 0% 100%; /* Pure white background */
-    --foreground: var(--mtb-text); /* Dark charcoal */
+    --background: 220 20% 98%;            /* Subtle cool gray */
+    --foreground: var(--mtb-text);
 
-    --card: 0 0% 100%; /* Pure white */
+    --card: 0 0% 100%;
     --card-foreground: var(--mtb-text);
 
     --popover: 0 0% 100%;
     --popover-foreground: var(--mtb-text);
 
-    /* MTB Primary - Professional Banking Blue */
-    --primary: var(--mtb-primary); /* Trustworthy blue */
+    /* Primary - MTB Corporate Blue */
+    --primary: var(--mtb-primary);
     --primary-foreground: 0 0% 100%;
     --primary-light: 214 84% 70%;
     --primary-dark: 214 84% 42%;
 
     /* Secondary - Success Green */
-    --secondary: var(--mtb-accent); /* Professional green */
+    --secondary: var(--mtb-accent);
     --secondary-foreground: 0 0% 100%;
     --secondary-light: 142 76% 50%;
 
-    /* Accent - Action Orange */
-    --accent: var(--mtb-secondary); /* Warm secondary blue for CTAs */
+    /* Accent - Action Blue */
+    --accent: var(--mtb-secondary);
     --accent-foreground: 0 0% 100%;
     --accent-light: 25 95% 67%;
 
@@ -49,118 +61,128 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Neutral System */
-    --muted: var(--mtb-border); /* Light gray backgrounds */
+    --muted: 220 14% 96%;
     --muted-foreground: 220 13% 46%;
     --border: var(--mtb-border);
     --input: var(--mtb-border);
     --ring: var(--mtb-primary);
 
     /* Banking Specific */
-    --secure: var(--mtb-accent); /* Security indicators */
-    --pending: 43 96% 56%; /* Pending status */
-    --approved: var(--mtb-accent); /* Approved status */
-    --rejected: 0 84% 60%; /* Rejected status */
+    --secure: var(--mtb-accent);
+    --pending: 43 96% 56%;
+    --approved: var(--mtb-accent);
+    --rejected: 0 84% 60%;
 
-    /* MTB Gradients */
+    /* Modern Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--mtb-primary)), hsl(var(--mtb-secondary)));
     --gradient-success: linear-gradient(135deg, hsl(var(--mtb-accent)), hsl(142 76% 50%));
+    --gradient-mline: linear-gradient(90deg, 
+      hsl(var(--mtb-gradient-teal)) 0%, 
+      hsl(var(--mtb-gradient-green)) 25%, 
+      hsl(var(--mtb-gradient-orange)) 50%, 
+      hsl(var(--mtb-gradient-pink)) 75%, 
+      hsl(var(--mtb-gradient-magenta)) 100%
+    );
     --gradient-hero: linear-gradient(135deg, 
-      #1B9E9E 0%, 
-      #00A651 25%, 
-      #F59E42 50%, 
-      #E94E77 75%, 
-      #C73E8C 100%
+      hsl(222 47% 8%) 0%,
+      hsl(230 50% 12%) 50%,
+      hsl(240 45% 15%) 100%
     );
-    --gradient-header: linear-gradient(135deg, 
-      rgba(27, 158, 158, 0.9) 0%,
-      rgba(0, 166, 81, 0.85) 35%,
-      rgba(245, 158, 66, 0.8) 65%,
-      rgba(233, 78, 119, 0.85) 85%,
-      rgba(199, 62, 140, 0.9) 100%
-    );
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(var(--mtb-neutral)) 100%);
+    --gradient-mesh: radial-gradient(ellipse at 20% 30%, hsl(var(--mtb-gradient-teal) / 0.15) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 70%, hsl(var(--mtb-gradient-magenta) / 0.1) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 50%, hsl(var(--mtb-gradient-green) / 0.08) 0%, transparent 60%);
 
-    /* MTB Shadows */
-    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-elevated: 0 10px 20px rgba(0, 0, 0, 0.12);
-    --shadow-button: 0 1px 2px 0 hsl(var(--mtb-text) / 0.05);
+    /* Shadows */
+    --shadow-card: 0 1px 3px hsl(var(--mtb-text) / 0.04), 0 4px 12px hsl(var(--mtb-text) / 0.06);
+    --shadow-elevated: 0 4px 6px hsl(var(--mtb-text) / 0.05), 0 12px 24px hsl(var(--mtb-text) / 0.1);
+    --shadow-glow: 0 0 40px hsl(var(--mtb-gradient-green) / 0.2);
+    --shadow-button: 0 2px 8px hsl(var(--mtb-accent) / 0.25);
 
     /* Radius */
-    --radius: 0.375rem; /* 6px - MTB rounded corners */
+    --radius: 0.75rem;
 
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    /* MTB Dark Mode - Professional Banking Theme */
-    --background: 222 47% 11%; /* Deep navy background */
-    --foreground: 210 40% 98%; /* Light text */
+    /* MTB Dark Mode - Premium Banking Theme */
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
 
-    --card: 222 47% 14%; /* Slightly lighter than background */
-    --card-foreground: 210 40% 98%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 222 47% 14%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 96%;
 
-    /* MTB Primary remains recognizable in dark mode */
-    --primary: var(--mtb-secondary); /* Lighter MTB blue for dark mode */
+    /* Primary - Lighter for visibility */
+    --primary: 221 70% 55%;
     --primary-foreground: 0 0% 100%;
     --primary-light: 214 84% 70%;
     --primary-dark: 214 84% 42%;
 
-    /* Secondary - Success Green (maintains visibility) */
-    --secondary: var(--mtb-accent); /* MTB Green */
+    /* Secondary - Vibrant Green */
+    --secondary: 149 80% 45%;
     --secondary-foreground: 0 0% 100%;
     --secondary-light: 142 76% 50%;
 
-    /* Accent - Lighter blue for CTAs in dark mode */
-    --accent: 221 55% 45%; /* Lighter accent for dark mode */
+    /* Accent */
+    --accent: 221 55% 50%;
     --accent-foreground: 0 0% 100%;
 
-    /* Status Colors - Adjusted for dark mode */
-    --success: var(--mtb-accent);
+    /* Status Colors */
+    --success: 149 80% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 43 96% 56%;
     --warning-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Neutral System - Dark mode optimized */
-    --muted: 222 47% 20%; /* Darker muted background */
-    --muted-foreground: 215 20% 70%; /* Lighter muted text */
-    --border: 222 47% 25%; /* Visible borders in dark mode */
-    --input: 222 47% 25%;
-    --ring: var(--mtb-secondary);
+    /* Neutral System */
+    --muted: 222 47% 14%;
+    --muted-foreground: 215 20% 65%;
+    --border: 222 30% 20%;
+    --input: 222 30% 20%;
+    --ring: 221 70% 55%;
 
-    /* Banking Specific - Dark mode variants */
-    --secure: var(--mtb-accent);
+    /* Banking Specific */
+    --secure: 149 80% 45%;
     --pending: 43 96% 56%;
-    --approved: var(--mtb-accent);
+    --approved: 149 80% 45%;
     --rejected: 0 84% 60%;
 
-    /* Sidebar colors */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: var(--mtb-secondary);
+    /* Dark Mode Gradients */
+    --gradient-hero: linear-gradient(135deg, 
+      hsl(222 47% 6%) 0%,
+      hsl(230 50% 8%) 50%,
+      hsl(240 45% 10%) 100%
+    );
+    --gradient-mesh: radial-gradient(ellipse at 20% 30%, hsl(var(--mtb-gradient-teal) / 0.12) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 70%, hsl(var(--mtb-gradient-magenta) / 0.08) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 50%, hsl(var(--mtb-gradient-green) / 0.06) 0%, transparent 60%);
+
+    /* Shadows */
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.3), 0 4px 12px hsl(0 0% 0% / 0.4);
+    --shadow-elevated: 0 4px 6px hsl(0 0% 0% / 0.4), 0 12px 24px hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 60px hsl(var(--mtb-gradient-green) / 0.15);
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 221 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 20%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 47% 25%;
-    --sidebar-ring: var(--mtb-secondary);
+    --sidebar-accent: 222 47% 14%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 222 30% 20%;
+    --sidebar-ring: 221 70% 55%;
   }
 }
 
@@ -175,72 +197,193 @@
 }
 
 @layer components {
-  /* MTB Banking Interface Components */
-  .banking-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  /* Modern High-Tech Background */
+  .tech-background {
+    @apply relative overflow-hidden;
+    background: var(--gradient-hero);
   }
 
-  .banking-card {
-    @apply bg-card rounded-2xl border border-border shadow-[var(--shadow-card)] p-6;
+  .tech-background::before {
+    content: '';
+    @apply absolute inset-0;
+    background: var(--gradient-mesh);
+    pointer-events: none;
   }
 
-  .banking-card-elevated {
-    @apply bg-card rounded-2xl border border-border shadow-[var(--shadow-elevated)] p-6;
+  /* Tech Grid Pattern */
+  .tech-grid {
+    @apply absolute inset-0 opacity-[0.03];
+    background-image: 
+      linear-gradient(hsl(var(--foreground)) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px);
+    background-size: 60px 60px;
   }
 
-  /* MTB Neo Header with Organic Shapes */
-  .mtb-neo-header {
-    @apply relative overflow-hidden bg-gradient-to-br from-[#1B9E9E] via-[#00A651] to-[#F59E42];
-    min-height: 200px;
+  /* Floating Orbs for Modern Effect */
+  .tech-orb {
+    @apply absolute rounded-full blur-3xl;
+    animation: float-orb 20s ease-in-out infinite;
   }
 
-  .organic-shape {
-    @apply absolute rounded-full opacity-60 blur-3xl;
-    animation: float 20s ease-in-out infinite;
-  }
-
-  .organic-shape-1 {
-    @apply bg-[#E94E77] w-64 h-64 -top-20 -left-10;
+  .tech-orb-1 {
+    @apply w-96 h-96 -top-48 -left-24;
+    background: hsl(var(--mtb-gradient-teal) / 0.3);
     animation-delay: 0s;
   }
 
-  .organic-shape-2 {
-    @apply bg-[#C73E8C] w-80 h-80 top-10 right-0;
+  .tech-orb-2 {
+    @apply w-80 h-80 top-1/4 -right-20;
+    background: hsl(var(--mtb-gradient-magenta) / 0.25);
     animation-delay: 5s;
   }
 
-  .organic-shape-3 {
-    @apply bg-[#F59E42] w-48 h-48 bottom-0 left-1/3;
+  .tech-orb-3 {
+    @apply w-64 h-64 bottom-0 left-1/3;
+    background: hsl(var(--mtb-gradient-green) / 0.2);
     animation-delay: 10s;
   }
 
-  .organic-shape-4 {
-    @apply bg-[#00A651] w-56 h-56 -bottom-10 right-20;
+  .tech-orb-4 {
+    @apply w-72 h-72 -bottom-24 right-1/4;
+    background: hsl(var(--mtb-gradient-orange) / 0.15);
     animation-delay: 15s;
   }
 
-  @keyframes float {
+  @keyframes float-orb {
     0%, 100% {
       transform: translate(0, 0) scale(1);
     }
     25% {
-      transform: translate(20px, -20px) scale(1.1);
+      transform: translate(30px, -30px) scale(1.1);
     }
     50% {
-      transform: translate(-15px, 15px) scale(0.9);
+      transform: translate(-20px, 20px) scale(0.95);
     }
     75% {
-      transform: translate(15px, 10px) scale(1.05);
+      transform: translate(20px, 15px) scale(1.05);
     }
   }
 
-  /* MTB Mline Separator - Signature design element */
+  /* M-Line Separator - Signature Design Element */
   .mline-separator {
-    @apply h-1 bg-gradient-to-r from-mtb-primary to-mtb-secondary rounded-full;
+    @apply h-1 rounded-full;
+    background: var(--gradient-mline);
   }
   
-  .mline-separator-vertical {
-    @apply w-1 bg-gradient-to-b from-mtb-primary to-mtb-secondary rounded-full;
+  .mline-separator-thin {
+    @apply h-0.5 rounded-full;
+    background: var(--gradient-mline);
+  }
+
+  /* Banking Container */
+  .banking-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Banking Cards */
+  .banking-card {
+    @apply bg-card rounded-2xl border border-border p-6;
+    box-shadow: var(--shadow-card);
+  }
+
+  .banking-card-elevated {
+    @apply bg-card rounded-2xl border border-border p-6;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .banking-card-glass {
+    @apply rounded-2xl border border-border/50 p-6;
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Premium Header */
+  .premium-header {
+    @apply relative overflow-hidden;
+    background: var(--gradient-hero);
+    min-height: 220px;
+  }
+
+  .premium-header::before {
+    content: '';
+    @apply absolute inset-0;
+    background: var(--gradient-mesh);
+    pointer-events: none;
+  }
+
+  /* MTB Neo Header (Legacy Support) */
+  .mtb-neo-header {
+    @apply relative overflow-hidden;
+    background: var(--gradient-hero);
+    min-height: 200px;
+  }
+
+  .mtb-neo-header::before {
+    content: '';
+    @apply absolute inset-0;
+    background: var(--gradient-mesh);
+  }
+
+  .organic-shape {
+    @apply absolute rounded-full blur-3xl;
+    animation: float-orb 20s ease-in-out infinite;
+  }
+
+  .organic-shape-1 {
+    @apply w-64 h-64 -top-20 -left-10;
+    background: hsl(var(--mtb-gradient-teal) / 0.4);
+    animation-delay: 0s;
+  }
+
+  .organic-shape-2 {
+    @apply w-80 h-80 top-10 right-0;
+    background: hsl(var(--mtb-gradient-magenta) / 0.35);
+    animation-delay: 5s;
+  }
+
+  .organic-shape-3 {
+    @apply w-48 h-48 bottom-0 left-1/3;
+    background: hsl(var(--mtb-gradient-orange) / 0.3);
+    animation-delay: 10s;
+  }
+
+  .organic-shape-4 {
+    @apply w-56 h-56 -bottom-10 right-20;
+    background: hsl(var(--mtb-gradient-green) / 0.4);
+    animation-delay: 15s;
+  }
+
+  /* OTP Input Styling */
+  .otp-input-slot {
+    @apply relative flex h-14 w-12 items-center justify-center text-xl font-semibold;
+    @apply border-2 border-border bg-card rounded-xl;
+    @apply transition-all duration-200;
+  }
+
+  .otp-input-slot:focus-within,
+  .otp-input-slot[data-active="true"] {
+    @apply border-primary ring-2 ring-primary/20;
+    box-shadow: var(--shadow-glow);
+  }
+
+  .otp-input-slot.filled {
+    @apply border-success bg-success/5;
+  }
+
+  /* Timer Display */
+  .timer-display {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full;
+    @apply bg-muted text-muted-foreground text-sm font-medium;
+    @apply transition-colors duration-300;
+  }
+
+  .timer-display.warning {
+    @apply bg-warning/10 text-warning;
+  }
+
+  .timer-display.expired {
+    @apply bg-destructive/10 text-destructive;
   }
 
   /* Step Indicators */
@@ -249,17 +392,19 @@
   }
 
   .step-indicator-active {
-    @apply bg-mtb-primary text-white;
+    @apply bg-primary text-primary-foreground;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
   }
 
   .step-indicator-completed {
-    @apply bg-mtb-accent text-white;
+    @apply bg-success text-success-foreground;
   }
 
   .step-indicator-inactive {
     @apply bg-muted text-muted-foreground;
   }
 
+  /* Form Sections */
   .form-section {
     @apply space-y-6 p-6 bg-card rounded-lg border border-border;
   }
@@ -268,24 +413,59 @@
     @apply block text-sm font-medium text-foreground space-y-1;
   }
 
+  /* Amount Display */
   .loan-amount-display {
-    @apply text-3xl font-bold bg-gradient-to-r from-mtb-primary to-mtb-secondary bg-clip-text text-transparent;
+    @apply text-3xl font-bold;
+    background: var(--gradient-mline);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
+  /* Status Badges */
   .status-badge {
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
   }
 
   .status-pending {
-    @apply bg-warning/10 text-warning-foreground border border-warning/20;
+    @apply bg-warning/10 text-warning border border-warning/20;
   }
 
   .status-approved {
-    @apply bg-mtb-accent/10 text-white border border-mtb-accent/20;
+    @apply bg-success/10 text-success border border-success/20;
   }
 
   .status-rejected {
-    @apply bg-destructive/10 text-destructive-foreground border border-destructive/20;
+    @apply bg-destructive/10 text-destructive border border-destructive/20;
+  }
+
+  /* Theme Toggle Button */
+  .theme-toggle {
+    @apply relative inline-flex h-10 w-10 items-center justify-center rounded-full;
+    @apply bg-card/50 backdrop-blur-sm border border-border/50;
+    @apply hover:bg-card hover:border-border;
+    @apply transition-all duration-300;
+  }
+
+  .theme-toggle:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Success Animation */
+  .success-pulse {
+    animation: success-pulse 2s ease-out infinite;
+  }
+
+  @keyframes success-pulse {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--success) / 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 15px hsl(var(--success) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--success) / 0);
+    }
   }
 }
 
@@ -298,12 +478,19 @@
     background: var(--gradient-success);
   }
 
+  .gradient-mline {
+    background: var(--gradient-mline);
+  }
+
   .gradient-hero {
     background: var(--gradient-hero);
   }
 
-  .gradient-card {
-    background: var(--gradient-card);
+  .text-gradient-mline {
+    background: var(--gradient-mline);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .shadow-banking {
@@ -314,18 +501,26 @@
     box-shadow: var(--shadow-elevated);
   }
 
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-fade-in {
-    animation: fadeIn 0.2s ease-out;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(20px);
     }
     to {
       opacity: 1;
@@ -336,5 +531,16 @@
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }

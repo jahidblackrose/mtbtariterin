@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Smartphone, CreditCard, Shield } from "lucide-react";
+import { Smartphone, CreditCard, Shield, Loader2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
-import mtvbLogo from "@/assets/mtvb_logo-2.png";
+import { authService, otpService, ApiError, ERROR_MESSAGES } from "@/services/api";
+import mtbLogoFull from "@/assets/mtb-logo-full.png";
+import mlineGradient from "@/assets/mline-gradient.png";
 
 const Login = () => {
   const [accountNumber, setAccountNumber] = useState("");
@@ -19,62 +21,132 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    if (!accountNumber && !mobileNumber) {
+    const identifier = loginType === "account" ? accountNumber : mobileNumber;
+    
+    if (!identifier.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter your account number or mobile number",
+        title: "Validation Error",
+        description: loginType === "account" 
+          ? "Please enter your account number" 
+          : "Please enter your mobile number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic validation
+    if (loginType === "mobile" && !/^(\+880|0)?1[3-9]\d{8}$/.test(mobileNumber.replace(/\s/g, ''))) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Please enter a valid Bangladeshi mobile number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (loginType === "account" && accountNumber.length < 10) {
+      toast({
+        title: "Invalid Account Number",
+        description: "Please enter a valid account number",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/otp-verification", { 
-        state: { 
-          accountNumber: loginType === "account" ? accountNumber : "", 
-          mobileNumber: loginType === "mobile" ? mobileNumber : "" 
-        } 
+
+    try {
+      // First, authenticate
+      const authResponse = await authService.login({
+        accountNumber: loginType === "account" ? accountNumber : undefined,
+        mobileNumber: loginType === "mobile" ? mobileNumber : undefined,
       });
-    }, 1000);
+
+      if (authResponse.success) {
+        // Send OTP
+        const otpResponse = await otpService.sendOtp({
+          accountNumber: loginType === "account" ? accountNumber : undefined,
+          mobileNumber: loginType === "mobile" ? mobileNumber : undefined,
+          purpose: 'login',
+        });
+
+        if (otpResponse.success) {
+          toast({
+            title: "OTP Sent",
+            description: `Verification code sent to ${otpResponse.data?.maskedNumber || "your registered number"}`,
+          });
+
+          navigate("/otp-verification", { 
+            state: { 
+              accountNumber: loginType === "account" ? accountNumber : "", 
+              mobileNumber: loginType === "mobile" ? mobileNumber : "" 
+            } 
+          });
+        }
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        toast({
+          title: "Login Failed",
+          description: ERROR_MESSAGES[error.code] || error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: ERROR_MESSAGES.NETWORK_ERROR,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* MTB Neo Style Header */}
-      <div className="mtb-neo-header">
-        <div className="organic-shape organic-shape-1" />
-        <div className="organic-shape organic-shape-2" />
-        <div className="organic-shape organic-shape-3" />
-        <div className="organic-shape organic-shape-4" />
-        
-        <div className="relative z-10 py-12">
-          <div className="max-w-md mx-auto px-4">
-            {/* MTB Logo */}
-            <div className="text-center mb-8 animate-fade-in">
-              <div className="flex justify-center items-center gap-4 mb-4">
-                <img 
-                  src={mtvbLogo} 
-                  alt="MTB Neo" 
-                  className="h-16 drop-shadow-lg"
-                />
-              </div>
-              <div className="flex justify-center">
-                <ThemeToggle />
-              </div>
-            </div>
+    <div className="min-h-screen tech-background">
+      {/* Background Effects */}
+      <div className="tech-orb tech-orb-1" />
+      <div className="tech-orb tech-orb-2" />
+      <div className="tech-orb tech-orb-3" />
+      <div className="tech-orb tech-orb-4" />
+      <div className="tech-grid" />
+
+      {/* Header with Theme Toggle */}
+      <header className="relative z-10 py-6">
+        <div className="banking-container">
+          <div className="flex justify-end">
+            <ThemeToggle variant="header" />
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Login Card */}
-      <div className="banking-container -mt-20 relative z-20">
-        <div className="max-w-md mx-auto px-4">
+      {/* Main Content */}
+      <div className="relative z-10 banking-container pb-12">
+        <div className="max-w-md mx-auto">
+          {/* Logo Section */}
+          <div className="text-center mb-8 animate-fade-in">
+            <div className="flex justify-center mb-4">
+              <img 
+                src={mtbLogoFull} 
+                alt="Mutual Trust Bank PLC" 
+                className="h-16 md:h-20 w-auto drop-shadow-lg"
+              />
+            </div>
+            <div className="flex justify-center mb-4">
+              <img src={mlineGradient} alt="" className="w-24 h-auto opacity-80" />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-md mb-2">
+              <BilingualText english="Tarit Loan Application" bengali="তরিৎ ঋণ আবেদন" />
+            </h1>
+            <p className="text-white/70 text-sm">
+              <BilingualText english="Quick & Easy Digital Loan" bengali="দ্রুত ও সহজ ডিজিটাল ঋণ" />
+            </p>
+          </div>
 
-          <Card className="banking-card-elevated animate-slide-up shadow-elevated">
-            <CardHeader>
+          {/* Login Card */}
+          <Card className="banking-card-glass animate-slide-up">
+            <CardHeader className="pb-4">
               <CardTitle className="text-xl">
                 <BilingualText english="Log In" bengali="লগইন" />
               </CardTitle>
@@ -87,24 +159,36 @@ const Login = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Login Type Toggle */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-muted/50 rounded-xl">
                 <Button
                   variant={loginType === "account" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setLoginType("account")}
-                  className="text-xs"
+                  className={`rounded-lg transition-all duration-200 ${
+                    loginType === "account" 
+                      ? "bg-card shadow-sm" 
+                      : "hover:bg-card/50"
+                  }`}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  <BilingualText english="Account No." bengali="একাউন্ট নং" />
+                  <span className="text-xs font-medium">
+                    <BilingualText english="Account No." bengali="একাউন্ট নং" />
+                  </span>
                 </Button>
                 <Button
                   variant={loginType === "mobile" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setLoginType("mobile")}
-                  className="text-xs"
+                  className={`rounded-lg transition-all duration-200 ${
+                    loginType === "mobile" 
+                      ? "bg-card shadow-sm" 
+                      : "hover:bg-card/50"
+                  }`}
                 >
                   <Smartphone className="w-4 h-4 mr-2" />
-                  <BilingualText english="Mobile No." bengali="মোবাইল নং" />
+                  <span className="text-xs font-medium">
+                    <BilingualText english="Mobile No." bengali="মোবাইল নং" />
+                  </span>
                 </Button>
               </div>
 
@@ -119,7 +203,8 @@ const Login = () => {
                     placeholder="Enter your account number"
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
-                    className="h-12"
+                    className="h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20"
+                    disabled={isLoading}
                   />
                 </div>
               ) : (
@@ -132,7 +217,8 @@ const Login = () => {
                     placeholder="+880 1XXX-XXXXXX"
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
-                    className="h-12"
+                    className="h-12 bg-background/50 border-border/50 focus:border-primary focus:ring-primary/20"
+                    disabled={isLoading}
                   />
                 </div>
               )}
@@ -141,17 +227,23 @@ const Login = () => {
               <Button 
                 onClick={handleLogin} 
                 disabled={isLoading}
-                className="w-full h-12 bg-[#00A651] hover:bg-[#008F45] text-white"
+                className="w-full h-12 bg-success hover:bg-success/90 text-white font-medium rounded-xl shadow-button transition-all duration-200 hover:shadow-lg"
                 size="lg"
               >
                 {isLoading ? (
-                  <BilingualText english="Logging in..." bengali="লগইন করা হচ্ছে..." />
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <BilingualText english="Logging in..." bengali="লগইন করা হচ্ছে..." />
+                  </div>
                 ) : (
                   <BilingualText english="Log In" bengali="লগইন" />
                 )}
               </Button>
 
-              <Separator className="my-6" />
+              {/* M-Line Separator */}
+              <div className="relative py-4">
+                <div className="mline-separator" />
+              </div>
 
               {/* MTB Neo App Link */}
               <div className="text-center">
@@ -161,7 +253,10 @@ const Login = () => {
                     bengali="ইতিমধ্যে এমটিবি নিও অ্যাপ আছে?" 
                   />
                 </p>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-11 rounded-xl border-2 hover:bg-primary/5"
+                >
                   <BilingualText english="Access via MTB Neo" bengali="এমটিবি নিও দিয়ে অ্যাক্সেস করুন" />
                 </Button>
               </div>
@@ -169,8 +264,8 @@ const Login = () => {
           </Card>
 
           {/* Security Note */}
-          <div className="mt-6 text-center pb-8">
-            <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
+          <div className="mt-6 text-center">
+            <p className="text-xs text-white/60 flex items-center justify-center gap-2">
               <Shield className="w-3 h-3" />
               <BilingualText 
                 english="Your information is protected with bank-grade security" 
