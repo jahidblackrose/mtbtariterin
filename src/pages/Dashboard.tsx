@@ -6,20 +6,18 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
-  CreditCard, 
   DollarSign, 
-  Calendar, 
   LogOut, 
   User,
   FileText,
   Clock,
-  CheckCircle,
-  XCircle
+  CheckCircle
 } from "lucide-react";
 import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
-import mtbLogo from "@/assets/mtvb_logo.png";
+import mtbLogoFull from "@/assets/mtb-logo-full.png";
+import mlineGradient from "@/assets/mline-gradient.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -72,41 +70,43 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* MTB Neo Style Header */}
-      <div className="mtb-neo-header">
-        <div className="organic-shape organic-shape-1" />
-        <div className="organic-shape organic-shape-2" />
-        <div className="organic-shape organic-shape-3" />
-        <div className="organic-shape organic-shape-4" />
+    <div className="min-h-screen tech-background">
+      {/* Background Effects */}
+      <div className="tech-orb tech-orb-1" />
+      <div className="tech-orb tech-orb-2" />
+      <div className="tech-orb tech-orb-3" />
+      <div className="tech-orb tech-orb-4" />
+      <div className="tech-grid" />
         
-        <div className="relative z-10">
-          <header className="py-6">
-            <div className="banking-container">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <img src={mtbLogo} alt="MTB Logo" className="h-10 drop-shadow-lg" />
-                  <div>
-                    <h1 className="text-xl font-bold text-white drop-shadow">
-                      <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
-                    </h1>
-                    <p className="text-sm text-white/90 drop-shadow">
-                      <BilingualText english="Welcome back" bengali="স্বাগতম" />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ThemeToggle />
-                  <LanguageToggle className="bg-white/20 text-white hover:bg-white/30 border-white/30" />
-                  <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/20">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    <BilingualText english="Logout" bengali="লগআউট" />
-                  </Button>
+      <div className="relative z-10">
+        <header className="py-6">
+          <div className="banking-container">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <img src={mtbLogoFull} alt="MTB Logo" className="h-12 drop-shadow-lg" />
+                <div>
+                  <h1 className="text-xl font-bold text-white drop-shadow">
+                    <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
+                  </h1>
+                  <p className="text-sm text-white/80 drop-shadow">
+                    <BilingualText english="Welcome back" bengali="স্বাগতম" />
+                  </p>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+                <ThemeToggle variant="header" />
+                <LanguageToggle className="bg-white/20 text-white hover:bg-white/30 border-white/30" />
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/20">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  <BilingualText english="Logout" bengali="লগআউট" />
+                </Button>
+              </div>
             </div>
-          </header>
-        </div>
+            <div className="flex justify-center mt-4">
+              <img src={mlineGradient} alt="" className="w-20 h-auto opacity-70" />
+            </div>
+          </div>
+        </header>
       </div>
 
       <div className="banking-container py-8 -mt-10 relative z-20">
