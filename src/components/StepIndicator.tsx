@@ -14,45 +14,47 @@ interface StepIndicatorProps {
 
 export const StepIndicator = ({ steps, currentStep }: StepIndicatorProps) => {
   return (
-    <div className="flex items-center justify-between">
-      {steps.map((step, index) => (
-        <div key={step.id} className="flex items-center">
-          {/* Step Circle */}
-          <div className="flex flex-col items-center">
-            <div
-              className={`step-indicator ${
-                step.id === currentStep
-                  ? "step-indicator-active"
-                  : step.id < currentStep
-                  ? "step-indicator-completed"
-                  : "step-indicator-inactive"
-              }`}
-            >
-              {step.id < currentStep ? (
-                <CheckCircle className="w-5 h-5" />
-              ) : (
-                step.id
-              )}
+    <div className="w-full overflow-x-auto pb-2">
+      <div className="flex items-center justify-between min-w-max px-2">
+        {steps.map((step, index) => (
+          <div key={step.id} className="flex items-center">
+            {/* Step Circle */}
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                  step.id === currentStep
+                    ? "bg-mtb-teal text-white shadow-lg ring-4 ring-mtb-teal/20"
+                    : step.id < currentStep
+                    ? "bg-mtb-success text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {step.id < currentStep ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  step.id
+                )}
+              </div>
+              <div className="mt-2 text-center max-w-[80px]">
+                <p className={`text-xs font-medium leading-tight ${
+                  step.id <= currentStep ? "text-foreground" : "text-muted-foreground"
+                }`}>
+                  <BilingualText english={step.title} bengali={step.titleBengali} />
+                </p>
+              </div>
             </div>
-            <div className="mt-2 text-center">
-              <p className={`text-xs font-medium ${
-                step.id <= currentStep ? "text-foreground" : "text-muted-foreground"
-              }`}>
-                <BilingualText english={step.title} bengali={step.titleBengali} />
-              </p>
-            </div>
+            
+            {/* Connector Line */}
+            {index < steps.length - 1 && (
+              <div
+                className={`h-0.5 w-8 mx-2 transition-colors ${
+                  step.id < currentStep ? "bg-mtb-success" : "bg-border"
+                }`}
+              />
+            )}
           </div>
-          
-          {/* Connector Line */}
-          {index < steps.length - 1 && (
-            <div
-              className={`h-px w-full mx-4 ${
-                step.id < currentStep ? "bg-secondary" : "bg-border"
-              }`}
-            />
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
