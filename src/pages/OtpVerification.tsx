@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import { toast } from "@/hooks/use-toast";
 import { useOtpTimer } from "@/hooks/useOtpTimer";
 import { otpService, ApiError, ERROR_MESSAGES } from "@/services/api";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
-import mlineGradient from "@/assets/mline-gradient.png";
 
 type VerificationStatus = 'idle' | 'verifying' | 'success' | 'error';
 
@@ -22,7 +21,7 @@ const OtpVerification = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { timeRemaining, isExpired, formattedTime, resetTimer } = useOtpTimer(120); // 2 minutes
+  const { timeRemaining, isExpired, formattedTime, resetTimer } = useOtpTimer(120);
   
   const { accountNumber, mobileNumber } = location.state || {};
 
@@ -30,7 +29,6 @@ const OtpVerification = () => {
     ? mobileNumber.replace(/(\d{4})\d{4}(\d{3})/, "$1****$2")
     : accountNumber?.replace(/(\d{4})\d{6}(\d{3})/, "$1******$2") || "****";
 
-  // Auto-verify when 6 digits are entered
   const handleVerifyOtp = useCallback(async (otpValue: string) => {
     if (otpValue.length !== 6) return;
     
@@ -76,12 +74,10 @@ const OtpVerification = () => {
         });
       }
       
-      // Reset OTP input for retry
       setOtp("");
     }
   }, [accountNumber, mobileNumber, navigate]);
 
-  // Handle OTP input change with auto-submit
   const handleOtpChange = (value: string) => {
     setOtp(value);
     setErrorMessage("");
@@ -90,7 +86,6 @@ const OtpVerification = () => {
       setVerificationStatus('idle');
     }
     
-    // Auto-verify when 6 digits are entered
     if (value.length === 6) {
       handleVerifyOtp(value);
     }
@@ -137,7 +132,6 @@ const OtpVerification = () => {
     }
   };
 
-  // Get timer status class
   const getTimerClass = () => {
     if (isExpired) return "expired";
     if (timeRemaining <= 30) return "warning";
@@ -176,15 +170,15 @@ const OtpVerification = () => {
           {/* Logo & Title */}
           <div className="text-center mb-8 animate-fade-in">
             <div className="flex justify-center mb-4">
-              <img 
-                src={mtbLogoFull} 
-                alt="Mutual Trust Bank PLC" 
-                className="h-14 md:h-16 w-auto drop-shadow-lg"
-              />
+              <div className="bg-white/95 dark:bg-white/90 rounded-2xl p-3 shadow-lg backdrop-blur-sm">
+                <img 
+                  src={mtbLogoFull} 
+                  alt="Mutual Trust Bank PLC" 
+                  className="h-12 md:h-14 w-auto"
+                />
+              </div>
             </div>
-            <div className="flex justify-center mb-4">
-              <img src={mlineGradient} alt="" className="w-20 h-auto opacity-80" />
-            </div>
+            <div className="mline-separator w-20 mx-auto mb-4" />
             <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-md">
               <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
             </h1>
@@ -208,10 +202,10 @@ const OtpVerification = () => {
                   <Shield className="w-8 h-8 text-success" />
                 )}
               </div>
-              <CardTitle className="text-xl">
+              <CardTitle className="text-xl text-card-foreground">
                 <BilingualText english="OTP Verification" bengali="ওটিপি যাচাইকরণ" />
               </CardTitle>
-              <CardDescription className="text-center mt-2">
+              <CardDescription className="text-center mt-2 text-muted-foreground">
                 <BilingualText 
                   english={`Enter the 6-digit code sent to ${maskedNumber}`}
                   bengali={`${maskedNumber} এ পাঠানো ৬-সংখ্যার কোডটি প্রবেশ করান`}
@@ -290,7 +284,7 @@ const OtpVerification = () => {
                   disabled={!isExpired || isResending}
                   className={`transition-all duration-300 ${
                     isExpired 
-                      ? 'text-primary hover:text-primary-dark hover:bg-primary/10' 
+                      ? 'text-primary hover:text-primary hover:bg-primary/10' 
                       : 'text-muted-foreground cursor-not-allowed'
                   }`}
                 >
@@ -318,6 +312,13 @@ const OtpVerification = () => {
                     english="Didn't receive the code? Check your SMS or contact customer service at 16219" 
                     bengali="কোড পাননি? আপনার এসএমএস চেক করুন অথবা ১৬২১৯ নম্বরে কল করুন" 
                   />
+                </p>
+              </div>
+
+              {/* Demo Hint */}
+              <div className="text-center pt-2">
+                <p className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg inline-block">
+                  Demo: Enter OTP <span className="font-mono font-bold">123456</span>
                 </p>
               </div>
             </CardContent>
