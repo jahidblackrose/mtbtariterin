@@ -354,21 +354,21 @@
     animation-delay: 15s;
   }
 
-  /* OTP Input Styling */
+  /* OTP Input Styling - Fixed for light/dark modes */
   .otp-input-slot {
     @apply relative flex h-14 w-12 items-center justify-center text-xl font-semibold;
-    @apply border-2 border-border bg-card rounded-xl;
+    @apply border-2 border-border bg-background text-foreground rounded-xl;
     @apply transition-all duration-200;
   }
 
   .otp-input-slot:focus-within,
   .otp-input-slot[data-active="true"] {
-    @apply border-primary ring-2 ring-primary/20;
+    @apply border-primary ring-2 ring-primary/20 bg-background;
     box-shadow: var(--shadow-glow);
   }
 
   .otp-input-slot.filled {
-    @apply border-success bg-success/5;
+    @apply border-success bg-success/5 text-foreground;
   }
 
   /* Timer Display */
