@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Calculator, Clock, TrendingUp, Percent, Wallet } from "lucide-react";
+import { DollarSign, ArrowRight, Calculator, Clock } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface LoanDetailsStepProps {
@@ -20,8 +20,6 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
     loanTenure: data.loanTenure || [12]
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const loanPurposes = [
     { value: "business", labelEn: "Business Expansion", labelBn: "ব্যবসা সম্প্রসারণ" },
     { value: "education", labelEn: "Education", labelBn: "শিক্ষা" },
@@ -35,7 +33,7 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
 
   const maxLoanAmount = 500000;
   const maxTenure = 60;
-  const interestRate = 12;
+  const interestRate = 12; // 12% annual interest
 
   const calculateEMI = () => {
     const principal = formData.loanAmount[0];
@@ -49,10 +47,6 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
   };
 
   const handleNext = () => {
-    if (!formData.loanPurpose) {
-      setErrors({ loanPurpose: "Please select a loan purpose" });
-      return;
-    }
     const emi = calculateEMI();
     onNext({ ...formData, emi, interestRate });
   };
@@ -60,12 +54,10 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-mtb-teal/10 to-mtb-green/10 rounded-xl border border-mtb-teal/20">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-mtb-teal to-mtb-green flex items-center justify-center">
-          <Calculator className="w-6 h-6 text-white" />
-        </div>
+      <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
+        <Calculator className="w-6 h-6 text-primary" />
         <div>
-          <h3 className="font-semibold text-foreground">
+          <h3 className="font-semibold">
             <BilingualText english="Loan Requirements" bengali="ঋণের প্রয়োজনীয়তা" />
           </h3>
           <p className="text-sm text-muted-foreground">
@@ -79,48 +71,39 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
 
       {/* Loan Purpose */}
       <div className="space-y-3">
-        <Label className="text-foreground font-medium">
+        <Label className="bilingual-label">
           <BilingualText english="Loan Purpose" bengali="ঋণের উদ্দেশ্য" />
         </Label>
         <Select 
           value={formData.loanPurpose} 
-          onValueChange={(value) => {
-            setFormData(prev => ({ ...prev, loanPurpose: value }));
-            setErrors({});
-          }}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, loanPurpose: value }))}
         >
-          <SelectTrigger className={`h-12 bg-card border-border text-foreground ${errors.loanPurpose ? 'border-destructive' : ''}`}>
+          <SelectTrigger className="h-12">
             <SelectValue placeholder="Select loan purpose / ঋণের উদ্দেশ্য নির্বাচন করুন" />
           </SelectTrigger>
-          <SelectContent className="bg-card border-border">
+          <SelectContent>
             {loanPurposes.map((purpose) => (
-              <SelectItem key={purpose.value} value={purpose.value} className="text-foreground">
-                <div className="flex items-center justify-between w-full gap-4">
+              <SelectItem key={purpose.value} value={purpose.value}>
+                <div className="flex items-center justify-between w-full">
                   <span>{purpose.labelEn}</span>
-                  <span className="text-muted-foreground">{purpose.labelBn}</span>
+                  <span className="text-muted-foreground ml-4">{purpose.labelBn}</span>
                 </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {errors.loanPurpose && (
-          <p className="text-xs text-destructive">{errors.loanPurpose}</p>
-        )}
       </div>
 
-      <Separator className="bg-border" />
+      <Separator />
 
       {/* Loan Amount */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-mtb-teal" />
-            <Label className="text-foreground font-medium">
-              <BilingualText english="Loan Amount" bengali="ঋণের পরিমাণ" />
-            </Label>
-          </div>
+          <Label className="bilingual-label">
+            <BilingualText english="Loan Amount" bengali="ঋণের পরিমাণ" />
+          </Label>
           <div className="text-right">
-            <div className="text-2xl font-bold bg-gradient-to-r from-mtb-teal to-mtb-green bg-clip-text text-transparent">
+            <div className="loan-amount-display">
               ৳{formData.loanAmount[0].toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -144,20 +127,17 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
         </div>
       </div>
 
-      <Separator className="bg-border" />
+      <Separator />
 
       {/* Loan Tenure */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-mtb-green" />
-            <Label className="text-foreground font-medium">
-              <BilingualText english="Loan Tenure" bengali="ঋণের মেয়াদ" />
-            </Label>
-          </div>
+          <Label className="bilingual-label">
+            <BilingualText english="Loan Tenure" bengali="ঋণের মেয়াদ" />
+          </Label>
           <div className="text-right">
-            <div className="text-2xl font-bold text-mtb-green">
-              {formData.loanTenure[0]} <span className="text-base font-medium text-muted-foreground">
+            <div className="text-2xl font-bold text-primary">
+              {formData.loanTenure[0]} <span className="text-base font-medium">
                 <BilingualText english="months" bengali="মাস" />
               </span>
             </div>
@@ -182,47 +162,44 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
         </div>
       </div>
 
-      <Separator className="bg-border" />
+      <Separator />
 
       {/* EMI Calculation */}
-      <Card className="bg-gradient-to-r from-mtb-teal/10 via-mtb-green/10 to-mtb-orange/10 border-mtb-teal/20">
+      <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-mtb-teal to-mtb-green flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <h4 className="font-semibold text-foreground">
+          <div className="flex items-center gap-3 mb-4">
+            <Clock className="w-6 h-6 text-primary" />
+            <h4 className="font-semibold text-primary">
               <BilingualText english="EMI Calculation" bengali="ইএমআই গণনা" />
             </h4>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 rounded-xl bg-card/50 border border-border">
-              <p className="text-sm text-muted-foreground mb-2">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">
                 <BilingualText english="Monthly EMI" bengali="মাসিক ইএমআই" />
               </p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-mtb-teal to-mtb-green bg-clip-text text-transparent">
+              <p className="text-2xl font-bold text-primary">
                 ৳{calculateEMI().toLocaleString()}
               </p>
             </div>
             
-            <div className="text-center p-4 rounded-xl bg-card/50 border border-border">
-              <p className="text-sm text-muted-foreground mb-2 flex items-center justify-center gap-1">
-                <Percent className="w-4 h-4" />
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">
                 <BilingualText english="Interest Rate" bengali="সুদের হার" />
               </p>
-              <p className="text-2xl font-semibold text-foreground">
-                {interestRate}% <span className="text-sm text-muted-foreground">
-                  <BilingualText english="p.a." bengali="বার্ষিক" />
+              <p className="text-xl font-semibold">
+                {interestRate}% <span className="text-sm">
+                  <BilingualText english="per annum" bengali="বার্ষিক" />
                 </span>
               </p>
             </div>
             
-            <div className="text-center p-4 rounded-xl bg-card/50 border border-border">
-              <p className="text-sm text-muted-foreground mb-2">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-1">
                 <BilingualText english="Total Amount" bengali="মোট পরিমাণ" />
               </p>
-              <p className="text-2xl font-semibold text-mtb-orange">
+              <p className="text-xl font-semibold">
                 ৳{(calculateEMI() * formData.loanTenure[0]).toLocaleString()}
               </p>
             </div>
@@ -232,11 +209,7 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
 
       {/* Action Buttons */}
       <div className="flex justify-end">
-        <Button 
-          onClick={handleNext} 
-          className="bg-gradient-to-r from-mtb-teal to-mtb-green hover:from-mtb-teal/90 hover:to-mtb-green/90 text-white shadow-lg" 
-          size="lg"
-        >
+        <Button onClick={handleNext} className="gradient-primary" size="lg">
           <BilingualText english="Save & Next" bengali="সংরক্ষণ ও পরবর্তী" />
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>

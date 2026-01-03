@@ -70,13 +70,6 @@ export default {
         "mtb-neutral": "hsl(var(--mtb-neutral))",
         "mtb-text": "hsl(var(--mtb-text))",
         "mtb-border": "hsl(var(--mtb-border))",
-        // MTB M-Line Gradient Colors
-        "mtb-teal": "hsl(var(--mtb-gradient-teal))",
-        "mtb-green": "hsl(var(--mtb-gradient-green))",
-        "mtb-orange": "hsl(var(--mtb-gradient-orange))",
-        "mtb-pink": "hsl(var(--mtb-gradient-pink))",
-        "mtb-magenta": "hsl(var(--mtb-gradient-magenta))",
-        "mtb-success": "hsl(149 80% 45%)",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

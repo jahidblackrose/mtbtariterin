@@ -17,6 +17,7 @@ import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
+import mlineGradient from "@/assets/mline-gradient.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -58,250 +59,249 @@ const Dashboard = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-mtb-orange/10 text-mtb-orange border-mtb-orange/20">Active</Badge>;
+        return <Badge className="status-pending">Active</Badge>;
       case "completed":
-        return <Badge className="bg-mtb-success/10 text-mtb-success border-mtb-success/20">Completed</Badge>;
+        return <Badge className="status-approved">Completed</Badge>;
       case "overdue":
-        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Overdue</Badge>;
+        return <Badge className="status-rejected">Overdue</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900">
-      {/* Header */}
-      <header className="py-4 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Logo with white background for visibility */}
-              <div className="bg-white rounded-xl p-2 shadow-lg">
-                <img src={mtbLogoFull} alt="MTB Logo" className="h-8 md:h-10 w-auto" />
+    <div className="min-h-screen tech-background">
+      {/* Background Effects */}
+      <div className="tech-orb tech-orb-1" />
+      <div className="tech-orb tech-orb-2" />
+      <div className="tech-orb tech-orb-3" />
+      <div className="tech-orb tech-orb-4" />
+      <div className="tech-grid" />
+        
+      <div className="relative z-10">
+        <header className="py-6">
+          <div className="banking-container">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <img src={mtbLogoFull} alt="MTB Logo" className="h-12 drop-shadow-lg" />
+                <div>
+                  <h1 className="text-xl font-bold text-white drop-shadow">
+                    <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
+                  </h1>
+                  <p className="text-sm text-white/80 drop-shadow">
+                    <BilingualText english="Welcome back" bengali="স্বাগতম" />
+                  </p>
+                </div>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-white">
-                  <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
-                </h1>
-                <p className="text-xs text-white/80">
-                  <BilingualText english="Welcome back" bengali="স্বাগতম" />
-                </p>
+              <div className="flex items-center gap-2">
+                <ThemeToggle variant="header" />
+                <LanguageToggle className="bg-white/20 text-white hover:bg-white/30 border-white/30" />
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/20">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  <BilingualText english="Logout" bengali="লগআউট" />
+                </Button>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <LanguageToggle variant="header" className="hidden sm:flex" />
-              <LanguageToggle variant="compact" className="sm:hidden bg-white/20 text-white rounded-full" />
-              <ThemeToggle variant="header" />
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout} 
-                className="text-white hover:bg-white/20 px-2 sm:px-3"
-              >
-                <LogOut className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">
-                  <BilingualText english="Logout" bengali="লগআউট" />
-                </span>
-              </Button>
+            <div className="flex justify-center mt-4">
+              <img src={mlineGradient} alt="" className="w-20 h-auto opacity-70" />
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Main Content */}
-      <div className="px-4 pb-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-4">
-              {/* Quick Actions */}
-              <Card className="bg-card/95 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Plus className="w-5 h-5 text-mtb-teal" />
-                    <BilingualText english="Loan Services" bengali="ঋণ সেবা" />
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    <BilingualText 
-                      english="Apply for new loans or manage existing ones" 
-                      bengali="নতুন ঋণের জন্য আবেদন বা বিদ্যমান পরিচালনা করুন" 
-                    />
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Button 
-                      onClick={() => navigate("/loan-application")}
-                      className="h-16 sm:h-20 bg-mtb-teal hover:bg-mtb-teal/90 text-white text-left justify-start rounded-xl"
-                      size="lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                          <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className="banking-container py-8 -mt-10 relative z-20">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Actions */}
+            <Card className="banking-card-elevated">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Plus className="w-5 h-5 text-[#00A651]" />
+                  <BilingualText english="Loan Services" bengali="ঋণ সেবা" />
+                </CardTitle>
+                <CardDescription>
+                  <BilingualText 
+                    english="Apply for new loans or manage existing ones" 
+                    bengali="নতুন ঋণের জন্য আবেদন করুন বা বিদ্যমানগুলি পরিচালনা করুন" 
+                  />
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Button 
+                    onClick={() => navigate("/loan-application")}
+                    className="h-20 bg-[#00A651] hover:bg-[#008F45] text-white text-left justify-start rounded-xl"
+                    size="lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                        <Plus className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-base">
+                          <BilingualText english="Apply New Loan" bengali="নতুন ঋণের আবেদন" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-sm sm:text-base truncate">
-                            <BilingualText english="Apply New Loan" bengali="নতুন ঋণ আবেদন" />
-                          </div>
-                          <div className="text-xs text-white/80 truncate">
-                            <BilingualText english="Quick & Easy" bengali="দ্রুত ও সহজ" />
-                          </div>
+                        <div className="text-xs text-white/80">
+                          <BilingualText english="Quick & Easy Process" bengali="দ্রুত ও সহজ প্রক্রিয়া" />
                         </div>
                       </div>
-                    </Button>
-                    
-                    <Button 
-                      variant="outline"
-                      onClick={() => navigate("/loan-calculator")}
-                      className="h-16 sm:h-20 text-left justify-start rounded-xl border-2 bg-card"
-                      size="lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-mtb-teal/10 flex items-center justify-center flex-shrink-0">
-                          <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-mtb-teal" />
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate("/loan-calculator")}
+                    className="h-20 text-left justify-start rounded-xl border-2"
+                    size="lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-[#00A651]/10 flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-[#00A651]" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-base">
+                          <BilingualText english="Loan Calculator" bengali="ঋণ ক্যালকুলেটর" />
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-sm sm:text-base text-foreground truncate">
-                            <BilingualText english="Loan Calculator" bengali="ঋণ ক্যালকুলেটর" />
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            <BilingualText english="Calculate EMI" bengali="ইএমআই গণনা" />
-                          </div>
+                        <div className="text-xs text-muted-foreground">
+                          <BilingualText english="Calculate EMI" bengali="ইএমআই গণনা করুন" />
                         </div>
                       </div>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Existing Loans */}
-              <Card className="bg-card/95 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="w-5 h-5 text-mtb-teal" />
-                    <BilingualText english="My Loans" bengali="আমার ঋণসমূহ" />
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    <BilingualText 
-                      english="Manage your existing loan accounts" 
-                      bengali="বিদ্যমান ঋণ অ্যাকাউন্ট পরিচালনা করুন" 
-                    />
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="space-y-3">
-                    {existingLoans.map((loan) => (
-                      <div key={loan.id} className="p-4 rounded-xl border-2 bg-card hover:border-mtb-teal/30 transition-all">
-                        <div className="flex items-start justify-between mb-3 gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <h3 className="font-semibold text-foreground">#{loan.id}</h3>
-                              {getStatusBadge(loan.status)}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              ৳{loan.amount.toLocaleString()} • {loan.installmentPaid}/{loan.totalInstallments} <BilingualText english="paid" bengali="পরিশোধিত" />
+            {/* Existing Loans */}
+            <Card className="banking-card-elevated">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="w-5 h-5 text-[#00A651]" />
+                  <BilingualText english="My Loan Accounts" bengali="আমার ঋণ অ্যাকাউন্টসমূহ" />
+                </CardTitle>
+                <CardDescription>
+                  <BilingualText 
+                    english="Manage your existing loan accounts" 
+                    bengali="আপনার বিদ্যমান ঋণ অ্যাকাউন্টগুলি পরিচালনা করুন" 
+                  />
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {existingLoans.map((loan, index) => (
+                    <div key={loan.id} className="p-5 rounded-xl border-2 bg-card/50 hover:bg-card transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold">Loan #{loan.id}</h3>
+                            {getStatusBadge(loan.status)}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            <BilingualText 
+                              english={`৳${loan.amount.toLocaleString()} - ${loan.installmentPaid}/${loan.totalInstallments} paid`}
+                              bengali={`৳${loan.amount.toLocaleString()} - ${loan.installmentPaid}/${loan.totalInstallments} পরিশোধিত`}
+                            />
+                          </p>
+                        </div>
+                        {loan.status === "active" && loan.installmentPaid > 0 && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCloseLoan(loan.id)}
+                          >
+                            <BilingualText english="Close Loan" bengali="ঋণ বন্ধ করুন" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">
+                            <BilingualText english="Balance" bengali="বকেয়া" />
+                          </p>
+                          <p className="font-medium">৳{loan.balance.toLocaleString()}</p>
+                        </div>
+                        {loan.nextDue && (
+                          <div>
+                            <p className="text-muted-foreground">
+                              <BilingualText english="Next Due" bengali="পরবর্তী বকেয়া" />
                             </p>
+                            <p className="font-medium">{loan.nextDue}</p>
                           </div>
-                          {loan.status === "active" && loan.installmentPaid > 0 && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleCloseLoan(loan.id)}
-                              className="text-xs flex-shrink-0"
-                            >
-                              <BilingualText english="Close" bengali="বন্ধ" />
-                            </Button>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="p-2 rounded-lg bg-muted/50">
-                            <p className="text-xs text-muted-foreground">
-                              <BilingualText english="Balance" bengali="বকেয়া" />
-                            </p>
-                            <p className="font-medium text-foreground">৳{loan.balance.toLocaleString()}</p>
-                          </div>
-                          {loan.nextDue && (
-                            <div className="p-2 rounded-lg bg-muted/50">
-                              <p className="text-xs text-muted-foreground">
-                                <BilingualText english="Next Due" bengali="পরবর্তী" />
-                              </p>
-                              <p className="font-medium text-foreground">{loan.nextDue}</p>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* Sidebar */}
-            <div className="space-y-4">
-              {/* User Profile Card */}
-              <Card className="bg-card/95 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <User className="w-5 h-5 text-mtb-teal" />
-                    <BilingualText english="Account" bengali="অ্যাকাউন্ট" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground text-xs">
-                        <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
-                      </p>
-                      <p className="font-medium text-foreground">****1234</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground text-xs">
-                        <BilingualText english="Mobile" bengali="মোবাইল" />
-                      </p>
-                      <p className="font-medium text-foreground">+880 1***-***456</p>
-                    </div>
-                    <Separator />
-                    <div>
-                      <p className="text-muted-foreground text-xs">
-                        <BilingualText english="Customer Since" bengali="গ্রাহক" />
-                      </p>
-                      <p className="font-medium text-foreground">Jan 2020</p>
-                    </div>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* User Profile Card */}
+            <Card className="banking-card-elevated">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#00A651]" />
+                  <BilingualText english="Account Info" bengali="অ্যাকাউন্ট তথ্য" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">
+                      <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
+                    </p>
+                    <p className="font-medium">****1234</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-muted-foreground">
+                      <BilingualText english="Mobile" bengali="মোবাইল" />
+                    </p>
+                    <p className="font-medium">+880 1***-***456</p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground">
+                      <BilingualText english="Customer Since" bengali="গ্রাহক হিসেবে" />
+                    </p>
+                    <p className="font-medium">Jan 2020</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Quick Stats */}
-              <Card className="bg-card/95 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
-                    <BilingualText english="Quick Stats" bengali="পরিসংখ্যান" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-mtb-success" />
-                        <span className="text-sm text-foreground">
-                          <BilingualText english="Completed" bengali="সম্পূর্ণ" />
-                        </span>
-                      </div>
-                      <span className="font-bold text-foreground">1</span>
+            {/* Quick Stats */}
+            <Card className="banking-card-elevated">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">
+                  <BilingualText english="Quick Stats" bengali="দ্রুত পরিসংখ্যান" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-success" />
+                      <span className="text-sm">
+                        <BilingualText english="Loans Completed" bengali="সম্পূর্ণ ঋণ" />
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-mtb-orange" />
-                        <span className="text-sm text-foreground">
-                          <BilingualText english="Active" bengali="সক্রিয়" />
-                        </span>
-                      </div>
-                      <span className="font-bold text-foreground">1</span>
-                    </div>
+                    <span className="font-bold">1</span>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-pending" />
+                      <span className="text-sm">
+                        <BilingualText english="Active Loans" bengali="সক্রিয় ঋণ" />
+                      </span>
+                    </div>
+                    <span className="font-bold">1</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

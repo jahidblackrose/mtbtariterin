@@ -41,85 +41,31 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
     setVerificationStatus("requesting-camera");
     setErrorMessage("");
 
-    // Check if getUserMedia is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setVerificationStatus("failed");
-      setErrorMessage("Camera not supported on this device. Please use a device with camera access.");
-      toast({
-        title: "Camera Not Supported",
-        description: "Your browser doesn't support camera access. Try using Chrome or Safari.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      // Request camera with mobile-friendly constraints
-      const constraints: MediaStreamConstraints = {
+      // Request camera with specific constraints for liveness
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
-          width: { min: 320, ideal: 640, max: 1280 },
-          height: { min: 240, ideal: 480, max: 720 },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 }
         },
         audio: false
-      };
+      });
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        
-        // Handle video ready state for mobile
-        const handleVideoReady = () => {
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                setVerificationStatus("camera-ready");
-              })
-              .catch((playError) => {
-                console.error("Video play error:", playError);
-                // Still set camera ready - user might need to interact
-                setVerificationStatus("camera-ready");
-              });
-          }
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+          setVerificationStatus("camera-ready");
         };
-
-        videoRef.current.onloadedmetadata = handleVideoReady;
-        videoRef.current.onloadeddata = handleVideoReady;
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Camera access error:", error);
       setVerificationStatus("failed");
-      
-      // Provide more specific error messages
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        setErrorMessage("Camera access blocked. Please enable camera permission in your browser/device settings, then refresh the page.");
-      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
-        setErrorMessage("No camera found. Please ensure your device has a camera.");
-      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
-        setErrorMessage("Camera is in use by another app. Please close other apps using the camera.");
-      } else if (error.name === "OverconstrainedError") {
-        setErrorMessage("Camera settings not supported. Trying with default settings...");
-        // Retry with basic constraints
-        try {
-          const basicStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          streamRef.current = basicStream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = basicStream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current?.play();
-              setVerificationStatus("camera-ready");
-            };
-          }
-          return;
-        } catch {
-          setErrorMessage("Unable to start camera. Please try a different browser.");
-        }
-      } else {
-        setErrorMessage("Camera access failed. Please check permissions and try again.");
-      }
-      
+      setErrorMessage("Camera access denied. Please allow camera permission and try again.");
       toast({
         title: "Camera Error",
         description: "Unable to access camera. Please check permissions.",
@@ -303,7 +249,6 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                   autoPlay 
                   playsInline 
                   muted
-                  webkit-playsinline="true"
                   className={`w-full h-full object-cover ${
                     verificationStatus === "camera-ready" || verificationStatus === "liveness-check"
                       ? "block"
