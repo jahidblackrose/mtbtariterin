@@ -146,9 +146,9 @@ const Login = () => {
     (loginType === "mobile" ? mobileNumber.length !== 11 : accountNumber.length !== 13);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mtb-teal via-mtb-green to-mtb-teal">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="relative z-10 py-4 px-4">
+      <header className="relative z-10 py-4 px-4 bg-gradient-to-r from-mtb-teal to-mtb-green">
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-between">
             {/* Logo with glow background */}
@@ -172,10 +172,10 @@ const Login = () => {
         <div className="max-w-md mx-auto">
           {/* Title Section */}
           <div className="text-center mb-6 animate-fade-in pt-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-white drop-shadow-md mb-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">
               <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
             </h1>
-            <p className="text-white/80 text-sm">
+            <p className="text-muted-foreground text-sm">
               <BilingualText english="Quick & Easy Digital Loan" bengali="দ্রুত ও সহজ ডিজিটাল ঋণ" />
             </p>
           </div>
@@ -312,7 +312,7 @@ const Login = () => {
 
           {/* Security Note */}
           <div className="mt-4 text-center">
-            <p className="text-xs text-white/70 flex items-center justify-center gap-1.5">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
               <Shield className="w-3 h-3" />
               <BilingualText 
                 english="Secured with bank-grade encryption" 
@@ -323,7 +323,7 @@ const Login = () => {
 
           {/* Demo Note */}
           <div className="mt-3 text-center">
-            <span className="text-xs text-white/60 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
+            <span className="text-xs text-muted-foreground bg-muted rounded-full px-3 py-1.5">
               Demo: Any valid format • OTP: 123456
             </span>
           </div>
