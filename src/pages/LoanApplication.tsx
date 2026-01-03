@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
-import { BilingualText } from "@/components/BilingualText";
+import { ArrowLeft, CheckCircle } from "lucide-react";
+import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { StepIndicator } from "@/components/StepIndicator";
 import { PersonalInfoStep } from "@/components/loan-steps/PersonalInfoStep";
@@ -15,16 +15,16 @@ import { LoanSummaryStep } from "@/components/loan-steps/LoanSummaryStep";
 import { FaceVerificationStep } from "@/components/loan-steps/FaceVerificationStep";
 import { TermsConditionsStep } from "@/components/loan-steps/TermsConditionsStep";
 import { ApplicationConfirmationStep } from "@/components/loan-steps/ApplicationConfirmationStep";
-import mtbLogo from "@/assets/mtvb_logo.png";
+import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
 const STEPS = [
   { id: 1, title: "Personal Info", titleBengali: "ব্যক্তিগত তথ্য" },
-  { id: 2, title: "Address Details", titleBengali: "ঠিকানার বিবরণ" },
+  { id: 2, title: "Address", titleBengali: "ঠিকানা" },
   { id: 3, title: "Existing Loans", titleBengali: "বিদ্যমান ঋণ" },
   { id: 4, title: "Loan Details", titleBengali: "ঋণের বিবরণ" },
   { id: 5, title: "Summary", titleBengali: "সারসংক্ষেপ" },
-  { id: 6, title: "Face Verification", titleBengali: "মুখ যাচাইকরণ" },
-  { id: 7, title: "Terms & Conditions", titleBengali: "শর্তাবলী" },
+  { id: 6, title: "Face Verify", titleBengali: "মুখ যাচাই" },
+  { id: 7, title: "Terms", titleBengali: "শর্তাবলী" },
   { id: 8, title: "Confirmation", titleBengali: "নিশ্চিতকরণ" }
 ];
 
@@ -77,71 +77,75 @@ const LoanApplication = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-10">
-        <div className="banking-container py-4">
-          <div className="flex items-center justify-between">
+      {/* Mobile-optimized Header */}
+      <header className="border-b bg-card/95 backdrop-blur-md sticky top-0 z-50 safe-area-top">
+        <div className="banking-container px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
             <Button 
               variant="ghost" 
+              size="sm"
               onClick={handlePrevious}
-              className="p-0 h-auto hover:bg-transparent"
+              className="p-2 h-auto"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              <BilingualText english="Back" bengali="পিছনে" />
+              <ArrowLeft className="w-5 h-5" />
             </Button>
             
-            <div className="text-center flex items-center gap-3">
-              <img src={mtbLogo} alt="MTB Logo" className="h-6" />
-              <div className="mline-separator-vertical h-6"></div>
-              <div>
-                <h1 className="text-lg font-semibold text-mtb-primary">
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+              <div className="logo-glow-container p-1 flex-shrink-0">
+                <img src={mtbLogoFull} alt="MTB Logo" className="h-6 sm:h-7 w-auto" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-base font-semibold text-foreground truncate">
                   <BilingualText english="Loan Application" bengali="ঋণের আবেদন" />
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   <BilingualText 
                     english={`Step ${currentStep} of ${STEPS.length}`}
-                    bengali={`ধাপ ${currentStep} এর ${STEPS.length}`}
+                    bengali={`ধাপ ${currentStep}/${STEPS.length}`}
                   />
                 </p>
               </div>
             </div>
             
-            <ThemeToggle />
+            <div className="flex items-center gap-1">
+              <LanguageToggle variant="compact" className="bg-muted text-foreground hover:bg-accent" />
+              <ThemeToggle />
+            </div>
           </div>
           
           {/* Progress Bar */}
-          <div className="mt-4">
-            <Progress value={progressPercentage} className="h-2" />
+          <div className="mt-3">
+            <Progress value={progressPercentage} className="h-1.5" />
           </div>
         </div>
       </header>
 
-      <div className="banking-container py-6">
+      <div className="banking-container px-4 py-4 sm:py-6">
         <div className="max-w-4xl mx-auto">
           {/* Step Indicators - Desktop */}
-          <div className="hidden lg:block mb-8">
+          <div className="hidden lg:block mb-6">
             <StepIndicator steps={STEPS} currentStep={currentStep} />
           </div>
 
           {/* Current Step Card */}
           <Card className="banking-card-elevated">
-            <CardHeader>
+            <CardHeader className="px-4 sm:px-6 pb-3">
               <div className="flex items-center gap-3">
-                <div className="step-indicator step-indicator-active">
+                <div className="step-indicator step-indicator-active flex-shrink-0">
                   {currentStep === STEPS.length ? (
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
                     currentStep
                   )}
                 </div>
-                <div>
-                  <CardTitle>
+                <div className="min-w-0">
+                  <CardTitle className="text-base sm:text-lg truncate">
                     <BilingualText 
                       english={STEPS[currentStep - 1].title}
                       bengali={STEPS[currentStep - 1].titleBengali}
                     />
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
                     <BilingualText 
                       english="Please fill in the required information"
                       bengali="প্রয়োজনীয় তথ্য পূরণ করুন"
@@ -150,22 +154,22 @@ const LoanApplication = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               {renderStep()}
             </CardContent>
           </Card>
 
           {/* Mobile Step Indicators */}
-          <div className="lg:hidden mt-6">
-            <div className="flex justify-center gap-2">
+          <div className="lg:hidden mt-4">
+            <div className="flex justify-center gap-1.5">
               {STEPS.map((step) => (
                 <div
                   key={step.id}
-                  className={`w-3 h-3 rounded-full ${
+                  className={`w-2 h-2 rounded-full transition-all ${
                     step.id === currentStep
-                      ? "bg-primary"
+                      ? "bg-primary w-4"
                       : step.id < currentStep
-                      ? "bg-secondary"
+                      ? "bg-success"
                       : "bg-muted"
                   }`}
                 />
