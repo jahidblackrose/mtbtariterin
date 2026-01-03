@@ -168,7 +168,7 @@ const OtpVerification = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mtb-teal via-mtb-green to-mtb-teal">
+    <div className="min-h-screen bg-zinc-900 flex flex-col">
       {/* Header */}
       <header className="relative z-10 py-4 px-4">
         <div className="max-w-md mx-auto">

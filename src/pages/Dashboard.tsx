@@ -69,7 +69,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mtb-teal via-mtb-green to-mtb-teal">
+    <div className="min-h-screen bg-zinc-900">
       {/* Header */}
       <header className="py-4 px-4">
         <div className="max-w-4xl mx-auto">
