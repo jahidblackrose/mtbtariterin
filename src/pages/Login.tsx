@@ -146,12 +146,12 @@ const Login = () => {
     (loginType === "mobile" ? mobileNumber.length !== 11 : accountNumber.length !== 13);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-900 flex flex-col">
       {/* Header */}
-      <header className="relative z-10 py-4 px-4 bg-gradient-to-r from-mtb-teal to-mtb-green">
+      <header className="relative z-10 py-4 px-4">
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-between">
-            {/* Logo with glow background */}
+            {/* Logo with light background */}
             <div className="bg-white rounded-xl p-2 shadow-lg">
               <img 
                 src={mtbLogoFull} 
@@ -168,20 +168,20 @@ const Login = () => {
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 px-4 pb-8">
-        <div className="max-w-md mx-auto">
+      <div className="relative z-10 px-4 pb-8 flex-1 flex items-center">
+        <div className="max-w-md mx-auto w-full">
           {/* Title Section */}
-          <div className="text-center mb-6 animate-fade-in pt-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">
+          <div className="text-center mb-6 animate-fade-in">
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
               <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-zinc-400 text-sm">
               <BilingualText english="Quick & Easy Digital Loan" bengali="দ্রুত ও সহজ ডিজিটাল ঋণ" />
             </p>
           </div>
 
           {/* Login Card */}
-          <Card className="bg-card/95 backdrop-blur-sm border-0 shadow-xl animate-slide-up">
+          <Card className="bg-white dark:bg-zinc-800 border-0 shadow-2xl animate-slide-up">
             <CardHeader className="pb-4 pt-6">
               <CardTitle className="text-xl text-foreground">
                 <BilingualText english="Log In" bengali="লগইন" />
@@ -312,7 +312,7 @@ const Login = () => {
 
           {/* Security Note */}
           <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+            <p className="text-xs text-zinc-400 flex items-center justify-center gap-1.5">
               <Shield className="w-3 h-3" />
               <BilingualText 
                 english="Secured with bank-grade encryption" 
@@ -323,7 +323,7 @@ const Login = () => {
 
           {/* Demo Note */}
           <div className="mt-3 text-center">
-            <span className="text-xs text-muted-foreground bg-muted rounded-full px-3 py-1.5">
+            <span className="text-xs text-zinc-500 bg-zinc-800 rounded-full px-3 py-1.5">
               Demo: Any valid format • OTP: 123456
             </span>
           </div>
