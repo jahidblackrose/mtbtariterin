@@ -94,7 +94,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
       
       // Provide more specific error messages
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        setErrorMessage("Camera permission denied. Please allow camera access in your browser settings.");
+        setErrorMessage("Camera access blocked. Please enable camera permission in your browser/device settings, then refresh the page.");
       } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
         setErrorMessage("No camera found. Please ensure your device has a camera.");
       } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
