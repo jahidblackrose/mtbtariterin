@@ -32,15 +32,15 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
-        <User className="w-6 h-6 text-primary" />
-        <div>
-          <h3 className="font-semibold">
+      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+        <User className="w-5 h-5 text-primary flex-shrink-0" />
+        <div className="min-w-0">
+          <h3 className="font-semibold text-sm">
             <BilingualText english="Personal Information Review" bengali="ব্যক্তিগত তথ্য পর্যালোচনা" />
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             <BilingualText 
               english="Please verify your personal details below" 
               bengali="নিচে আপনার ব্যক্তিগত বিবরণ যাচাই করুন" 
@@ -49,10 +49,10 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
         </div>
       </div>
 
-      {/* Form Fields */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label className="bilingual-label">
+      {/* Form Fields - Mobile optimized with reduced padding */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Full Name" bengali="পূর্ণ নাম" />
           </Label>
           <Input
@@ -63,8 +63,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Father's Name" bengali="পিতার নাম" />
           </Label>
           <Input
@@ -75,8 +75,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Mother's Name" bengali="মাতার নাম" />
           </Label>
           <Input
@@ -87,8 +87,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Date of Birth" bengali="জন্ম তারিখ" />
           </Label>
           <Input
@@ -100,8 +100,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="NID Number" bengali="এনআইডি নম্বর" />
           </Label>
           <Input
@@ -112,8 +112,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
           </Label>
           <Input
@@ -124,8 +124,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2 md:col-span-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Email Address" bengali="ইমেইল ঠিকানা" />
           </Label>
           <Input
@@ -135,8 +135,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           />
         </div>
 
-        <div className="space-y-2 md:col-span-2">
-          <Label className="bilingual-label">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
             <BilingualText english="Occupation" bengali="পেশা" />
           </Label>
           <Input

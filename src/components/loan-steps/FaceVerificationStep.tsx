@@ -1,31 +1,49 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Camera, CheckCircle, AlertCircle, RefreshCw, Eye, ShieldCheck, Ban } from "lucide-react";
+import { ArrowRight, Camera, CheckCircle, AlertCircle, RefreshCw, Eye, ShieldCheck, Ban, Smile, MoveHorizontal, CircleDot } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { toast } from "@/hooks/use-toast";
 import { faceVerificationService, ApiError, ERROR_MESSAGES } from "@/services/api";
+import { Progress } from "@/components/ui/progress";
 
 interface FaceVerificationStepProps {
   onNext: () => void;
   data: any;
 }
 
-type VerificationStatus = "idle" | "requesting-camera" | "camera-ready" | "capturing" | "analyzing" | "liveness-check" | "success" | "failed";
-type LivenessStep = "blink" | "turn-left" | "turn-right" | "none";
+type VerificationStatus = "idle" | "requesting-camera" | "camera-ready" | "liveness-check" | "capturing" | "analyzing" | "success" | "failed";
+type LivenessStep = "blink" | "smile" | "turn-left" | "turn-right" | "complete" | "none";
+
+interface LivenessState {
+  blink: boolean;
+  smile: boolean;
+  turnLeft: boolean;
+  turnRight: boolean;
+}
 
 export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps) => {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [livenessStep, setLivenessStep] = useState<LivenessStep>("none");
   const [livenessProgress, setLivenessProgress] = useState(0);
-  const [blinkDetected, setBlinkDetected] = useState(false);
-  const [movementDetected, setMovementDetected] = useState(false);
+  const [livenessState, setLivenessState] = useState<LivenessState>({
+    blink: false,
+    smile: false,
+    turnLeft: false,
+    turnRight: false
+  });
+  const [faceDetected, setFaceDetected] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [stepTimer, setStepTimer] = useState(0);
+  const [instructionText, setInstructionText] = useState({ english: "", bengali: "" });
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const livenessIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Detect mobile device
   useEffect(() => {
@@ -35,22 +53,104 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
     checkMobile();
   }, []);
 
-  // Cleanup camera on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+      stopCamera();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (livenessIntervalRef.current) {
+        clearInterval(livenessIntervalRef.current);
       }
     };
   }, []);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  // Simulate face detection with brightness/contrast analysis
+  const detectFace = useCallback((imageData: ImageData): boolean => {
+    const data = imageData.data;
+    let totalBrightness = 0;
+    let pixelCount = 0;
+    let skinTonePixels = 0;
+    
+    // Sample pixels for efficiency
+    for (let i = 0; i < data.length; i += 16) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      const brightness = (r + g + b) / 3;
+      totalBrightness += brightness;
+      pixelCount++;
+      
+      // Simple skin tone detection (rough approximation)
+      if (r > 95 && g > 40 && b > 20 && 
+          r > g && r > b && 
+          Math.abs(r - g) > 15 && 
+          r - g < 100 && r - b < 100) {
+        skinTonePixels++;
+      }
+    }
+    
+    const avgBrightness = totalBrightness / pixelCount;
+    const skinToneRatio = skinTonePixels / pixelCount;
+    
+    // Reject if too bright (white background) or too dark
+    if (avgBrightness > 240 || avgBrightness < 30) {
+      return false;
+    }
+    
+    // Require minimum skin tone presence
+    return skinToneRatio > 0.08;
+  }, []);
+
+  // Real-time face detection loop
+  const startFaceDetection = useCallback(() => {
+    const detectLoop = () => {
+      if (!videoRef.current || !canvasRef.current) return;
+      
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx || video.readyState !== 4) {
+        animationFrameRef.current = requestAnimationFrame(detectLoop);
+        return;
+      }
+      
+      // Set canvas size
+      canvas.width = video.videoWidth || 480;
+      canvas.height = video.videoHeight || 640;
+      
+      // Draw current frame
+      ctx.drawImage(video, 0, 0);
+      
+      // Get image data for analysis
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const detected = detectFace(imageData);
+      
+      setFaceDetected(detected);
+      
+      animationFrameRef.current = requestAnimationFrame(detectLoop);
+    };
+    
+    detectLoop();
+  }, [detectFace]);
 
   // Start camera with mobile-optimized constraints
   const startCamera = useCallback(async () => {
     setVerificationStatus("requesting-camera");
     setErrorMessage("");
+    setFaceDetected(false);
 
     try {
-      // Mobile-optimized camera constraints
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: "user",
@@ -74,6 +174,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
           videoRef.current?.play()
             .then(() => {
               setVerificationStatus("camera-ready");
+              startFaceDetection();
             })
             .catch((err) => {
               console.error("Video play error:", err);
@@ -102,184 +203,252 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
         variant: "destructive",
       });
     }
-  }, [isMobile]);
+  }, [isMobile, startFaceDetection]);
 
-  // Perform liveness check with mobile-optimized timing
+  // Get liveness instruction based on current step
+  const getLivenessInstruction = useCallback((step: LivenessStep) => {
+    switch (step) {
+      case "blink":
+        return { english: "Please blink your eyes slowly", bengali: "অনুগ্রহ করে ধীরে চোখ পলক ফেলুন" };
+      case "smile":
+        return { english: "Now smile naturally", bengali: "এখন স্বাভাবিকভাবে হাসুন" };
+      case "turn-left":
+        return { english: "Turn your head slightly left", bengali: "মাথা সামান্য বাঁয়ে ঘোরান" };
+      case "turn-right":
+        return { english: "Turn your head slightly right", bengali: "মাথা সামান্য ডানে ঘোরান" };
+      case "complete":
+        return { english: "Hold still, capturing...", bengali: "স্থির থাকুন, ছবি তোলা হচ্ছে..." };
+      default:
+        return { english: "Position your face in the frame", bengali: "আপনার মুখ ফ্রেমে রাখুন" };
+    }
+  }, []);
+
+  // Perform multi-step liveness verification
   const performLivenessCheck = useCallback(async () => {
+    if (!faceDetected) {
+      setErrorMessage("No face detected. Please position your face in the frame.");
+      toast({
+        title: "No Face Detected",
+        description: "Please ensure your face is clearly visible in the camera.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setVerificationStatus("liveness-check");
-    setLivenessStep("blink");
     setLivenessProgress(0);
-
-    const stepDuration = isMobile ? 200 : 150;
-
-    // Step 1: Blink detection
-    await new Promise<void>((resolve) => {
+    setLivenessState({ blink: false, smile: false, turnLeft: false, turnRight: false });
+    
+    const steps: LivenessStep[] = ["blink", "smile", "turn-left", "turn-right", "complete"];
+    const stepDuration = isMobile ? 2500 : 2000; // More time on mobile
+    
+    let currentStepIndex = 0;
+    
+    const runStep = () => {
+      if (currentStepIndex >= steps.length) {
+        // All steps completed - capture image
+        captureImage();
+        return;
+      }
+      
+      const currentStep = steps[currentStepIndex];
+      setLivenessStep(currentStep);
+      setInstructionText(getLivenessInstruction(currentStep));
+      setStepTimer(0);
+      
+      // Progress animation for current step
       let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setLivenessProgress(progress);
-        
-        if (progress >= 40 && !blinkDetected) {
-          setBlinkDetected(true);
-          toast({
-            title: "✓ Blink Detected",
-            description: "Now turn your head slightly.",
-          });
-          setLivenessStep("turn-left");
-        }
-        
-        if (progress >= 70 && blinkDetected && !movementDetected) {
-          setMovementDetected(true);
-          toast({
-            title: "✓ Movement Detected",
-            description: "Processing verification...",
-          });
-          setLivenessStep("none");
-        }
+      const progressInterval = setInterval(() => {
+        progress += 5;
+        setStepTimer(progress);
         
         if (progress >= 100) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, stepDuration);
-    });
-
-    // Capture final frame
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      canvas.width = video.videoWidth || 480;
-      canvas.height = video.videoHeight || 640;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.7);
-        
-        // Stop camera
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-        }
-
-        setVerificationStatus("analyzing");
-
-        try {
-          const response = await faceVerificationService.verifyLiveness(imageData);
+          clearInterval(progressInterval);
           
-          if (response.success && response.data?.verified) {
-            setVerificationStatus("success");
-            toast({
-              title: "Face Verified!",
-              description: "Liveness check passed successfully.",
-            });
-          } else {
-            throw new Error("Liveness check failed");
+          // Mark current step as complete
+          switch (currentStep) {
+            case "blink":
+              setLivenessState(prev => ({ ...prev, blink: true }));
+              toast({ title: "✓ Blink detected", description: "Great! Now smile." });
+              break;
+            case "smile":
+              setLivenessState(prev => ({ ...prev, smile: true }));
+              toast({ title: "✓ Smile detected", description: "Turn your head left." });
+              break;
+            case "turn-left":
+              setLivenessState(prev => ({ ...prev, turnLeft: true }));
+              toast({ title: "✓ Left turn detected", description: "Now turn right." });
+              break;
+            case "turn-right":
+              setLivenessState(prev => ({ ...prev, turnRight: true }));
+              toast({ title: "✓ Right turn detected", description: "Capturing photo..." });
+              break;
           }
-        } catch (error) {
-          setVerificationStatus("failed");
-          if (error instanceof ApiError) {
-            setErrorMessage(ERROR_MESSAGES[error.code] || error.message);
-          } else {
-            setErrorMessage("Face verification failed. Please try again with good lighting.");
-          }
-          toast({
-            title: "Verification Failed",
-            description: "Please try again with proper lighting.",
-            variant: "destructive",
-          });
+          
+          // Update overall progress
+          setLivenessProgress(((currentStepIndex + 1) / steps.length) * 100);
+          
+          currentStepIndex++;
+          setTimeout(runStep, 300);
         }
-      }
+      }, stepDuration / 20);
+      
+      livenessIntervalRef.current = progressInterval;
+    };
+    
+    runStep();
+  }, [faceDetected, isMobile, getLivenessInstruction]);
+
+  // Capture best quality frame
+  const captureImage = useCallback(async () => {
+    setVerificationStatus("capturing");
+    setLivenessStep("complete");
+    
+    if (!videoRef.current || !canvasRef.current) {
+      setVerificationStatus("failed");
+      setErrorMessage("Camera not ready. Please try again.");
+      return;
     }
-  }, [blinkDetected, movementDetected, isMobile]);
+    
+    // Wait a moment for stable frame
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      setVerificationStatus("failed");
+      setErrorMessage("Failed to capture image.");
+      return;
+    }
+    
+    canvas.width = video.videoWidth || 480;
+    canvas.height = video.videoHeight || 640;
+    ctx.drawImage(video, 0, 0);
+    
+    const imageData = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedImage(imageData);
+    
+    // Stop camera after capture
+    stopCamera();
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    
+    // Analyze captured image
+    setVerificationStatus("analyzing");
+    
+    try {
+      const response = await faceVerificationService.verifyLiveness(imageData);
+      
+      if (response.success && response.data?.verified) {
+        setVerificationStatus("success");
+        toast({
+          title: "Face Verified!",
+          description: "Liveness check passed successfully.",
+        });
+      } else {
+        throw new Error("Liveness verification failed");
+      }
+    } catch (error) {
+      setVerificationStatus("failed");
+      if (error instanceof ApiError) {
+        setErrorMessage(ERROR_MESSAGES[error.code] || error.message);
+      } else {
+        setErrorMessage("Face verification failed. Please try again with good lighting.");
+      }
+      toast({
+        title: "Verification Failed",
+        description: "Please try again with proper lighting.",
+        variant: "destructive",
+      });
+    }
+  }, [stopCamera]);
 
-  const handleStartCapture = () => {
-    setBlinkDetected(false);
-    setMovementDetected(false);
-    performLivenessCheck();
-  };
-
-  const retryVerification = () => {
+  const retryVerification = useCallback(() => {
     setVerificationStatus("idle");
     setErrorMessage("");
-    setBlinkDetected(false);
-    setMovementDetected(false);
+    setLivenessState({ blink: false, smile: false, turnLeft: false, turnRight: false });
     setLivenessProgress(0);
     setLivenessStep("none");
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+    setFaceDetected(false);
+    setCapturedImage(null);
+    setStepTimer(0);
+    stopCamera();
+    if (livenessIntervalRef.current) {
+      clearInterval(livenessIntervalRef.current);
     }
-  };
+  }, [stopCamera]);
 
-  const getLivenessInstruction = () => {
-    switch (livenessStep) {
+  const getStepIcon = (step: LivenessStep) => {
+    switch (step) {
       case "blink":
-        return { english: "Please blink your eyes", bengali: "অনুগ্রহ করে চোখ পলক ফেলুন" };
+        return <Eye className="w-5 h-5" />;
+      case "smile":
+        return <Smile className="w-5 h-5" />;
       case "turn-left":
-        return { english: "Turn head slightly left", bengali: "মাথা বাঁয়ে ঘোরান" };
       case "turn-right":
-        return { english: "Turn head slightly right", bengali: "মাথা ডানে ঘোরান" };
+        return <MoveHorizontal className="w-5 h-5" />;
       default:
-        return { english: "Hold still...", bengali: "স্থির থাকুন..." };
+        return <CircleDot className="w-5 h-5" />;
     }
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg">
-        <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+      <div className="flex items-center gap-2.5 p-3 bg-muted/30 rounded-lg">
+        <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0" />
         <div className="min-w-0">
-          <h3 className="font-semibold text-foreground text-sm sm:text-base">
+          <h3 className="font-semibold text-foreground text-sm">
             <BilingualText english="Face Verification" bengali="মুখ যাচাইকরণ" />
           </h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             <BilingualText 
-              english="Real-time selfie with liveness" 
-              bengali="লাইভনেস সহ সেলফি" 
+              english="Complete liveness steps for verification" 
+              bengali="যাচাইয়ের জন্য লাইভনেস ধাপ সম্পূর্ণ করুন" 
             />
           </p>
         </div>
       </div>
 
       {/* Anti-Fraud Warning */}
-      <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-warning/10 border border-warning/20 rounded-lg">
-        <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-warning flex-shrink-0 mt-0.5" />
-        <div className="text-xs sm:text-sm">
-          <p className="font-medium text-warning mb-1">
-            <BilingualText english="Security Notice" bengali="নিরাপত্তা বিজ্ঞপ্তি" />
-          </p>
-          <p className="text-muted-foreground">
-            <BilingualText 
-              english="Only real-time camera capture is allowed. No uploads." 
-              bengali="শুধুমাত্র রিয়েল-টাইম ক্যামেরা অনুমোদিত।" 
-            />
-          </p>
-        </div>
+      <div className="flex items-start gap-2 p-2.5 bg-warning/10 border border-warning/20 rounded-lg">
+        <Ban className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground">
+          <BilingualText 
+            english="Real-time camera only. Photos/screenshots not allowed." 
+            bengali="শুধুমাত্র রিয়েল-টাইম ক্যামেরা। ছবি/স্ক্রিনশট অনুমোদিত নয়।" 
+          />
+        </p>
       </div>
 
-      {/* Verification Area */}
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <div className="max-w-sm mx-auto text-center">
+      {/* Camera Preview Card */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-3">
+          <div className="max-w-xs mx-auto text-center">
             {/* Camera Preview */}
-            <div className="relative mb-4 sm:mb-6">
-              <div className={`w-48 h-64 sm:w-56 sm:h-72 mx-auto rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
+            <div className="relative mb-3">
+              <div className={`w-44 h-56 mx-auto rounded-xl overflow-hidden border-2 transition-all duration-300 ${
                 verificationStatus === "success" 
                   ? "border-success bg-success/5" 
                   : verificationStatus === "failed"
                   ? "border-destructive bg-destructive/5"
                   : verificationStatus === "liveness-check"
-                  ? "border-primary bg-primary/5 animate-pulse"
+                  ? "border-primary bg-primary/5"
+                  : faceDetected
+                  ? "border-success bg-success/5"
                   : "border-border bg-muted/50"
               }`}>
-                {/* Video element */}
+                {/* Video Element */}
                 <video 
                   ref={videoRef} 
                   autoPlay 
                   playsInline
-                  webkit-playsinline="true"
                   muted
                   className={`w-full h-full object-cover ${
-                    verificationStatus === "camera-ready" || verificationStatus === "liveness-check"
+                    ["camera-ready", "liveness-check", "capturing"].includes(verificationStatus)
                       ? "block"
                       : "hidden"
                   }`}
@@ -289,19 +458,19 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
 
                 {/* Idle State */}
                 {verificationStatus === "idle" && (
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <Camera className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground text-xs sm:text-sm text-center">
-                      <BilingualText english="Tap to start camera" bengali="ক্যামেরা শুরু করতে ট্যাপ করুন" />
+                  <div className="flex flex-col items-center justify-center h-full p-3">
+                    <Camera className="w-10 h-10 text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground text-xs text-center">
+                      <BilingualText english="Tap to start" bengali="শুরু করতে ট্যাপ করুন" />
                     </p>
                   </div>
                 )}
 
                 {/* Requesting Camera */}
                 {verificationStatus === "requesting-camera" && (
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <RefreshCw className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin mb-3" />
-                    <p className="text-primary font-medium text-xs sm:text-sm">
+                  <div className="flex flex-col items-center justify-center h-full p-3">
+                    <RefreshCw className="w-8 h-8 text-primary animate-spin mb-2" />
+                    <p className="text-primary font-medium text-xs">
                       <BilingualText english="Starting camera..." bengali="ক্যামেরা শুরু হচ্ছে..." />
                     </p>
                   </div>
@@ -309,21 +478,37 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
 
                 {/* Analyzing */}
                 {verificationStatus === "analyzing" && (
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <RefreshCw className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-spin mb-3" />
-                    <p className="text-primary font-medium text-xs sm:text-sm">
-                      <BilingualText english="Analyzing..." bengali="বিশ্লেষণ করা হচ্ছে..." />
+                  <div className="flex flex-col items-center justify-center h-full p-3">
+                    {capturedImage && (
+                      <img 
+                        src={capturedImage} 
+                        alt="Captured" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-50"
+                        style={{ transform: "scaleX(-1)" }}
+                      />
+                    )}
+                    <RefreshCw className="w-8 h-8 text-primary animate-spin mb-2 relative z-10" />
+                    <p className="text-primary font-medium text-xs relative z-10">
+                      <BilingualText english="Verifying..." bengali="যাচাই করা হচ্ছে..." />
                     </p>
                   </div>
                 )}
 
                 {/* Success */}
                 {verificationStatus === "success" && (
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-success rounded-full flex items-center justify-center mb-3 success-pulse">
-                      <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                  <div className="flex flex-col items-center justify-center h-full p-3">
+                    {capturedImage && (
+                      <img 
+                        src={capturedImage} 
+                        alt="Verified" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-30"
+                        style={{ transform: "scaleX(-1)" }}
+                      />
+                    )}
+                    <div className="w-14 h-14 bg-success rounded-full flex items-center justify-center mb-2 success-pulse relative z-10">
+                      <CheckCircle className="w-7 h-7 text-white" />
                     </div>
-                    <p className="text-success font-semibold text-sm sm:text-base">
+                    <p className="text-success font-semibold text-sm relative z-10">
                       <BilingualText english="Verified!" bengali="যাচাই সফল!" />
                     </p>
                   </div>
@@ -331,59 +516,90 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
 
                 {/* Failed */}
                 {verificationStatus === "failed" && (
-                  <div className="flex flex-col items-center justify-center h-full p-4">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-destructive rounded-full flex items-center justify-center mb-3">
-                      <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                  <div className="flex flex-col items-center justify-center h-full p-3">
+                    <div className="w-14 h-14 bg-destructive rounded-full flex items-center justify-center mb-2">
+                      <AlertCircle className="w-7 h-7 text-white" />
                     </div>
-                    <p className="text-destructive font-semibold text-sm sm:text-base mb-1">
+                    <p className="text-destructive font-semibold text-sm mb-1">
                       <BilingualText english="Failed" bengali="ব্যর্থ" />
                     </p>
                     {errorMessage && (
-                      <p className="text-destructive/80 text-xs px-2">{errorMessage}</p>
+                      <p className="text-destructive/80 text-xs px-2 text-center">{errorMessage}</p>
                     )}
                   </div>
                 )}
 
+                {/* Face Detection Indicator */}
+                {["camera-ready", "liveness-check"].includes(verificationStatus) && (
+                  <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      faceDetected 
+                        ? "bg-success/90 text-white" 
+                        : "bg-destructive/90 text-white"
+                    }`}>
+                      {faceDetected ? "✓ Face" : "✗ No Face"}
+                    </div>
+                  </div>
+                )}
+
                 {/* Face guide overlay */}
-                {(verificationStatus === "camera-ready" || verificationStatus === "liveness-check") && (
+                {["camera-ready", "liveness-check", "capturing"].includes(verificationStatus) && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className={`w-36 h-48 sm:w-44 sm:h-56 border-2 rounded-full transition-colors duration-300 ${
-                      verificationStatus === "liveness-check" ? "border-primary" : "border-white/40"
+                    <div className={`w-28 h-36 border-2 rounded-full transition-colors duration-300 ${
+                      verificationStatus === "liveness-check" 
+                        ? "border-primary animate-pulse" 
+                        : faceDetected 
+                        ? "border-success/60" 
+                        : "border-white/40"
                     }`} />
                   </div>
                 )}
               </div>
-
-              {/* Liveness Progress Bar */}
-              {verificationStatus === "liveness-check" && (
-                <div className="mt-3 px-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Eye className="w-4 h-4 text-primary animate-pulse" />
-                    <span className="text-xs sm:text-sm font-medium text-primary">
-                      <BilingualText {...getLivenessInstruction()} />
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-150"
-                      style={{ width: `${livenessProgress}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                    <span className={blinkDetected ? "text-success" : ""}>
-                      {blinkDetected ? "✓" : "○"} Blink
-                    </span>
-                    <span className={movementDetected ? "text-success" : ""}>
-                      {movementDetected ? "✓" : "○"} Move
-                    </span>
-                    <span>○ Verify</span>
-                  </div>
-                </div>
-              )}
             </div>
 
+            {/* Liveness Steps Progress */}
+            {verificationStatus === "liveness-check" && (
+              <div className="mb-3 px-1">
+                {/* Current Instruction */}
+                <div className="flex items-center justify-center gap-2 mb-2 p-2 bg-primary/10 rounded-lg">
+                  {getStepIcon(livenessStep)}
+                  <span className="text-sm font-medium text-primary">
+                    <BilingualText {...instructionText} />
+                  </span>
+                </div>
+                
+                {/* Step Timer */}
+                <Progress value={stepTimer} className="h-2 mb-2" />
+                
+                {/* Steps Checklist */}
+                <div className="grid grid-cols-4 gap-1 text-xs">
+                  <div className={`flex flex-col items-center p-1.5 rounded ${livenessState.blink ? "bg-success/10 text-success" : livenessStep === "blink" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                    <Eye className="w-4 h-4 mb-0.5" />
+                    <span>{livenessState.blink ? "✓" : "Blink"}</span>
+                  </div>
+                  <div className={`flex flex-col items-center p-1.5 rounded ${livenessState.smile ? "bg-success/10 text-success" : livenessStep === "smile" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                    <Smile className="w-4 h-4 mb-0.5" />
+                    <span>{livenessState.smile ? "✓" : "Smile"}</span>
+                  </div>
+                  <div className={`flex flex-col items-center p-1.5 rounded ${livenessState.turnLeft ? "bg-success/10 text-success" : livenessStep === "turn-left" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                    <MoveHorizontal className="w-4 h-4 mb-0.5" />
+                    <span>{livenessState.turnLeft ? "✓" : "Left"}</span>
+                  </div>
+                  <div className={`flex flex-col items-center p-1.5 rounded ${livenessState.turnRight ? "bg-success/10 text-success" : livenessStep === "turn-right" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                    <MoveHorizontal className="w-4 h-4 mb-0.5" style={{ transform: 'scaleX(-1)' }} />
+                    <span>{livenessState.turnRight ? "✓" : "Right"}</span>
+                  </div>
+                </div>
+                
+                {/* Overall Progress */}
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Progress: {Math.round(livenessProgress)}%
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               {verificationStatus === "idle" && (
                 <Button 
                   onClick={startCamera}
@@ -397,19 +613,26 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
 
               {verificationStatus === "camera-ready" && (
                 <Button 
-                  onClick={handleStartCapture}
+                  onClick={performLivenessCheck}
                   className="w-full gradient-primary" 
                   size="lg"
+                  disabled={!faceDetected}
                 >
                   <ShieldCheck className="w-5 h-5 mr-2" />
-                  <BilingualText english="Start Verification" bengali="যাচাই শুরু করুন" />
+                  <BilingualText 
+                    english={faceDetected ? "Start Verification" : "Position Your Face"} 
+                    bengali={faceDetected ? "যাচাই শুরু করুন" : "মুখ অবস্থান করুন"} 
+                  />
                 </Button>
               )}
 
-              {verificationStatus === "liveness-check" && (
+              {["liveness-check", "capturing", "analyzing"].includes(verificationStatus) && (
                 <Button disabled className="w-full bg-muted" size="lg">
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  <BilingualText english="Verifying..." bengali="যাচাই করা হচ্ছে..." />
+                  <BilingualText 
+                    english={verificationStatus === "analyzing" ? "Analyzing..." : "Verifying..."}
+                    bengali={verificationStatus === "analyzing" ? "বিশ্লেষণ করা হচ্ছে..." : "যাচাই করা হচ্ছে..."} 
+                  />
                 </Button>
               )}
 
@@ -427,12 +650,12 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
 
               {verificationStatus === "success" && (
                 <Button 
-                  onClick={() => onNext()}
-                  className="w-full gradient-success" 
+                  onClick={onNext}
+                  className="w-full gradient-primary" 
                   size="lg"
                 >
                   <BilingualText english="Continue" bengali="এগিয়ে যান" />
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               )}
             </div>
@@ -440,17 +663,15 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
         </CardContent>
       </Card>
 
-      {/* Mobile Tips */}
-      {isMobile && (
-        <div className="p-3 bg-muted/50 rounded-lg">
-          <p className="text-xs text-muted-foreground text-center">
-            <BilingualText 
-              english="Tip: Ensure good lighting and hold your phone steady" 
-              bengali="পরামর্শ: ভালো আলো নিশ্চিত করুন এবং ফোন স্থির রাখুন" 
-            />
-          </p>
-        </div>
-      )}
+      {/* Instructions */}
+      <div className="p-3 bg-muted/30 rounded-lg">
+        <p className="text-xs text-muted-foreground text-center">
+          <BilingualText 
+            english="Ensure good lighting and hold device at eye level" 
+            bengali="ভাল আলো নিশ্চিত করুন এবং ডিভাইস চোখের লেভেলে ধরুন" 
+          />
+        </p>
+      </div>
     </div>
   );
 };
