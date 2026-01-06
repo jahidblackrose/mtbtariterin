@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { Smartphone, CreditCard, Shield, Loader2, AlertCircle } from "lucide-rea
 import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   authService, 
   otpService, 
@@ -25,6 +27,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const accountInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
@@ -168,33 +171,54 @@ const Login = () => {
       <div className="tech-orb tech-orb-4" />
       <div className="tech-grid" />
 
-      {/* Header */}
+      {/* Header - Minimal on mobile */}
       <header className="relative z-10 py-4 safe-area-top">
-        <div className="banking-container">
-          <div className="flex justify-end items-center gap-2">
-            <LanguageToggle variant="header" className="bg-white/20 text-white hover:bg-white/30" />
-            <ThemeToggle variant="header" />
+        <div className="px-4 max-w-md mx-auto">
+          <div className="flex justify-between items-center">
+            {/* Desktop: Show logo */}
+            {!isMobile && (
+              <div className="logo-glow-container p-2">
+                <img 
+                  src={mtbLogoFull} 
+                  alt="MTB" 
+                  className="h-8 w-auto"
+                />
+              </div>
+            )}
+            {/* Mobile: Empty space */}
+            {isMobile && <div />}
+            
+            <div className="flex items-center gap-2">
+              <LanguageToggle variant="header" className="bg-white/20 text-white hover:bg-white/30" />
+              <ThemeToggle variant="header" />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 banking-container pb-8 px-4">
-        <div className="max-w-md mx-auto">
-          {/* Logo Section with Glow */}
-          <div className="text-center mb-6 animate-fade-in">
-            <div className="flex justify-center mb-4">
-              <div className="logo-glow-container p-4">
-                <img 
-                  src={mtbLogoFull} 
-                  alt="Mutual Trust Bank PLC" 
-                  className="h-12 sm:h-16 md:h-18 w-auto"
-                />
+      <div className="relative z-10 px-4 pb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md mx-auto"
+        >
+          {/* Logo Section - Always centered on mobile */}
+          <div className="text-center mb-6">
+            {isMobile && (
+              <div className="flex justify-center mb-4">
+                <div className="logo-glow-container p-4">
+                  <img 
+                    src={mtbLogoFull} 
+                    alt="Mutual Trust Bank PLC" 
+                    className="h-14 w-auto"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="mline-separator w-20 mx-auto mb-3" />
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-md mb-1">
-              <BilingualText english="Tarit Loan Application" bengali="তরিৎ ঋণ আবেদন" />
+            )}
+            <div className="mline-separator w-16 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-1">
+              <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
             </h1>
             <p className="text-white/70 text-sm">
               <BilingualText english="Quick & Easy Digital Loan" bengali="দ্রুত ও সহজ ডিজিটাল ঋণ" />
@@ -202,121 +226,132 @@ const Login = () => {
           </div>
 
           {/* Login Card */}
-          <Card className="banking-card-glass animate-slide-up">
-            <CardHeader className="pb-4 px-4 sm:px-6">
-              <CardTitle className="text-lg sm:text-xl text-card-foreground">
+          <Card className="rounded-3xl border-0 shadow-elevated overflow-hidden">
+            <CardHeader className="pb-4 px-5 pt-6">
+              <CardTitle className="text-xl text-card-foreground">
                 <BilingualText english="Log In" bengali="লগইন" />
               </CardTitle>
-              <CardDescription className="text-muted-foreground text-sm">
+              <CardDescription className="text-muted-foreground">
                 <BilingualText 
-                  english="Enter your credentials to access Tarit Loan services" 
-                  bengali="তরিৎ ঋণ সেবা অ্যাক্সেস করতে তথ্য প্রবেশ করান" 
+                  english="Enter your credentials to continue" 
+                  bengali="চালিয়ে যেতে আপনার তথ্য প্রবেশ করান" 
                 />
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5 px-4 sm:px-6">
-              {/* Login Type Toggle */}
-              <div className="grid grid-cols-2 gap-2 p-1.5 bg-muted rounded-xl border border-border">
+            
+            <CardContent className="space-y-5 px-5 pb-6">
+              {/* Login Type Toggle - App-like segmented control */}
+              <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-muted rounded-2xl">
                 <button
                   type="button"
                   onClick={() => handleLoginTypeChange("account")}
-                  className={`flex items-center justify-center gap-2 py-3 px-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center justify-center gap-2 py-3.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     loginType === "account" 
-                      ? "bg-primary text-primary-foreground shadow-sm" 
-                      : "text-foreground hover:bg-accent/50"
+                      ? "bg-card text-foreground shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <CreditCard className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">
+                  <CreditCard className="w-4 h-4" />
+                  <span>
                     <BilingualText english="Account" bengali="একাউন্ট" />
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleLoginTypeChange("mobile")}
-                  className={`flex items-center justify-center gap-2 py-3 px-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center justify-center gap-2 py-3.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     loginType === "mobile" 
-                      ? "bg-primary text-primary-foreground shadow-sm" 
-                      : "text-foreground hover:bg-accent/50"
+                      ? "bg-card text-foreground shadow-sm" 
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Smartphone className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">
+                  <Smartphone className="w-4 h-4" />
+                  <span>
                     <BilingualText english="Mobile" bengali="মোবাইল" />
                   </span>
                 </button>
               </div>
 
               {/* Input Fields */}
-              {loginType === "account" ? (
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium text-sm">
-                    <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
-                  </Label>
-                  <Input
-                    ref={accountInputRef}
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Enter 13-digit account number"
-                    value={accountNumber}
-                    onChange={(e) => handleAccountChange(e.target.value)}
-                    className="h-12 bg-background text-foreground border-border placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 text-base"
-                    disabled={isLoading}
-                    maxLength={13}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {accountNumber.length}/13 digits
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium text-sm">
-                    <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
-                  </Label>
-                  <Input
-                    ref={mobileInputRef}
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="01XXXXXXXXX"
-                    value={mobileNumber}
-                    onChange={(e) => handleMobileChange(e.target.value)}
-                    className="h-12 bg-background text-foreground border-border placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 text-base"
-                    disabled={isLoading}
-                    maxLength={11}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {mobileNumber.length}/11 digits • Must start with 01
-                  </p>
-                </div>
-              )}
+              <motion.div
+                key={loginType}
+                initial={{ opacity: 0, x: loginType === "account" ? -20 : 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {loginType === "account" ? (
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-medium">
+                      <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
+                    </Label>
+                    <Input
+                      ref={accountInputRef}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Enter 13-digit account number"
+                      value={accountNumber}
+                      onChange={(e) => handleAccountChange(e.target.value)}
+                      className="h-14 text-lg rounded-xl"
+                      disabled={isLoading}
+                      maxLength={13}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {accountNumber.length}/13 digits
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-medium">
+                      <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
+                    </Label>
+                    <Input
+                      ref={mobileInputRef}
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="01XXXXXXXXX"
+                      value={mobileNumber}
+                      onChange={(e) => handleMobileChange(e.target.value)}
+                      className="h-14 text-lg rounded-xl"
+                      disabled={isLoading}
+                      maxLength={11}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {mobileNumber.length}/11 digits
+                    </p>
+                  </div>
+                )}
+              </motion.div>
 
               {/* Validation Error */}
               {validationError && (
-                <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm animate-fade-in">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm"
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{validationError}</span>
-                </div>
+                </motion.div>
               )}
 
               {/* Login Button */}
               <Button 
                 onClick={handleLogin} 
                 disabled={isSubmitDisabled}
-                className="w-full h-12 bg-success hover:bg-success/90 text-white font-medium rounded-xl shadow-button transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-base"
-                size="lg"
+                className="w-full h-14 bg-success hover:bg-success/90 text-white font-semibold rounded-xl text-base shadow-button transition-all hover:shadow-lg disabled:opacity-50"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <BilingualText english="Logging in..." bengali="লগইন করা হচ্ছে..." />
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <BilingualText english="Logging in..." bengali="লগইন হচ্ছে..." />
                   </div>
                 ) : (
                   <BilingualText english="Log In" bengali="লগইন" />
                 )}
               </Button>
 
-              {/* M-Line Separator */}
-              <div className="relative py-3">
+              {/* Separator */}
+              <div className="relative py-2">
                 <div className="mline-separator" />
               </div>
 
@@ -330,9 +365,9 @@ const Login = () => {
                 </p>
                 <Button 
                   variant="outline" 
-                  className="w-full h-11 rounded-xl border-2 border-border text-foreground hover:bg-accent/50"
+                  className="w-full h-12 rounded-xl border-2"
                 >
-                  <BilingualText english="Access via MTB Neo" bengali="এমটিবি নিও দিয়ে অ্যাক্সেস করুন" />
+                  <BilingualText english="Access via MTB Neo" bengali="এমটিবি নিও দিয়ে অ্যাক্সেস" />
                 </Button>
               </div>
             </CardContent>
@@ -343,19 +378,19 @@ const Login = () => {
             <p className="text-xs text-white/60 flex items-center justify-center gap-2">
               <Shield className="w-3 h-3" />
               <BilingualText 
-                english="Your information is protected with bank-grade security" 
-                bengali="আপনার তথ্য ব্যাংক-মানের নিরাপত্তায় সুরক্ষিত" 
+                english="Your information is protected" 
+                bengali="আপনার তথ্য সুরক্ষিত" 
               />
             </p>
           </div>
 
           {/* Demo Note */}
           <div className="mt-3 text-center">
-            <p className="text-xs text-white/50 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
+            <p className="text-xs text-white/50 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 inline-block">
               Demo: Use any valid format. OTP: 123456
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

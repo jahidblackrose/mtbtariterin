@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, CheckCircle } from "lucide-react";
-import { BilingualText, LanguageToggle } from "@/components/BilingualText";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { StepIndicator } from "@/components/StepIndicator";
+import { CheckCircle } from "lucide-react";
+import { BilingualText } from "@/components/BilingualText";
+import { AppHeader, CircularStepIndicator, FixedBottomCTA, StepTransition } from "@/components/pwa";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { PersonalInfoStep } from "@/components/loan-steps/PersonalInfoStep";
 import { AddressStep } from "@/components/loan-steps/AddressStep";
 import { ExistingLoansStep } from "@/components/loan-steps/ExistingLoansStep";
@@ -15,169 +14,198 @@ import { LoanSummaryStep } from "@/components/loan-steps/LoanSummaryStep";
 import { FaceVerificationStep } from "@/components/loan-steps/FaceVerificationStep";
 import { TermsConditionsStep } from "@/components/loan-steps/TermsConditionsStep";
 import { ApplicationConfirmationStep } from "@/components/loan-steps/ApplicationConfirmationStep";
-import mtbLogoFull from "@/assets/mtb-logo-full.png";
+import { loanStepService } from "@/services/loanStepApi";
+import { toast } from "@/hooks/use-toast";
 
 const STEPS = [
-  { id: 1, title: "Personal Info", titleBengali: "ব্যক্তিগত তথ্য" },
+  { id: 1, title: "Personal", titleBengali: "ব্যক্তিগত" },
   { id: 2, title: "Address", titleBengali: "ঠিকানা" },
-  { id: 3, title: "Existing Loans", titleBengali: "বিদ্যমান ঋণ" },
-  { id: 4, title: "Loan Details", titleBengali: "ঋণের বিবরণ" },
-  { id: 5, title: "Summary", titleBengali: "সারসংক্ষেপ" },
-  { id: 6, title: "Face Verify", titleBengali: "মুখ যাচাই" },
-  { id: 7, title: "Terms", titleBengali: "শর্তাবলী" },
-  { id: 8, title: "Confirmation", titleBengali: "নিশ্চিতকরণ" }
+  { id: 3, title: "Loans", titleBengali: "ঋণ" },
+  { id: 4, title: "Amount", titleBengali: "পরিমাণ" },
+  { id: 5, title: "Summary", titleBengali: "সারাংশ" },
+  { id: 6, title: "Face", titleBengali: "মুখ" },
+  { id: 7, title: "Terms", titleBengali: "শর্ত" },
+  { id: 8, title: "Done", titleBengali: "সম্পন্ন" }
 ];
 
 const LoanApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [applicationData, setApplicationData] = useState({});
+  const [stepDirection, setStepDirection] = useState(1);
+  const [applicationData, setApplicationData] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
-  const handleNext = (stepData?: any) => {
+  // Submit step data to API
+  const submitStepData = useCallback(async (step: number, data: any) => {
+    setIsLoading(true);
+    try {
+      const response = await loanStepService.submitStep(step, data);
+      if (response.success) {
+        return response.data;
+      }
+      throw new Error(response.message || "Failed to save step data");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save data. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleNext = useCallback(async (stepData?: any) => {
     if (stepData) {
-      setApplicationData(prev => ({ ...prev, ...stepData }));
+      // Submit to API
+      const result = await submitStepData(currentStep, stepData);
+      if (!result && currentStep !== 8) {
+        // API call failed, don't proceed (except for final step)
+        return;
+      }
+      setApplicationData(prev => ({ ...prev, ...stepData, ...result }));
     }
+    
     if (currentStep < STEPS.length) {
-      setCurrentStep(currentStep + 1);
+      setStepDirection(1);
+      setCurrentStep(prev => prev + 1);
     }
-  };
+  }, [currentStep, submitStepData]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      setStepDirection(-1);
+      setCurrentStep(prev => prev - 1);
     } else {
       navigate("/dashboard");
     }
-  };
+  }, [currentStep, navigate]);
 
   const renderStep = () => {
+    const stepProps = { onNext: handleNext, data: applicationData };
+    
     switch (currentStep) {
       case 1:
-        return <PersonalInfoStep onNext={handleNext} data={applicationData} />;
+        return <PersonalInfoStep {...stepProps} />;
       case 2:
-        return <AddressStep onNext={handleNext} data={applicationData} />;
+        return <AddressStep {...stepProps} />;
       case 3:
-        return <ExistingLoansStep onNext={handleNext} data={applicationData} />;
+        return <ExistingLoansStep {...stepProps} />;
       case 4:
-        return <LoanDetailsStep onNext={handleNext} data={applicationData} />;
+        return <LoanDetailsStep {...stepProps} />;
       case 5:
-        return <LoanSummaryStep onNext={handleNext} data={applicationData} />;
+        return <LoanSummaryStep {...stepProps} />;
       case 6:
-        return <FaceVerificationStep onNext={handleNext} data={applicationData} />;
+        return <FaceVerificationStep {...stepProps} />;
       case 7:
-        return <TermsConditionsStep onNext={handleNext} data={applicationData} />;
+        return <TermsConditionsStep {...stepProps} />;
       case 8:
         return <ApplicationConfirmationStep data={applicationData} />;
       default:
-        return <PersonalInfoStep onNext={handleNext} data={applicationData} />;
+        return <PersonalInfoStep {...stepProps} />;
     }
   };
 
-  const progressPercentage = (currentStep / STEPS.length) * 100;
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile-optimized Header */}
-      <header className="border-b bg-card/95 backdrop-blur-md sticky top-0 z-50 safe-area-top">
-        <div className="banking-container px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={handlePrevious}
-              className="p-2 h-auto"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            
-            <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
-              <div className="logo-glow-container p-1 flex-shrink-0">
-                <img src={mtbLogoFull} alt="MTB Logo" className="h-6 sm:h-7 w-auto" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-semibold text-foreground truncate">
-                  <BilingualText english="Loan Application" bengali="ঋণের আবেদন" />
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  <BilingualText 
-                    english={`Step ${currentStep} of ${STEPS.length}`}
-                    bengali={`ধাপ ${currentStep}/${STEPS.length}`}
-                  />
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <LanguageToggle variant="compact" className="bg-muted text-foreground hover:bg-accent" />
-              <ThemeToggle />
-            </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="mt-3">
-            <Progress value={progressPercentage} className="h-1.5" />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* App Header - Mobile: back only, Desktop: logo + back */}
+      <AppHeader
+        title={{ english: "Loan Application", bengali: "ঋণের আবেদন" }}
+        subtitle={{ 
+          english: `Step ${currentStep} of ${STEPS.length}`, 
+          bengali: `ধাপ ${currentStep} / ${STEPS.length}` 
+        }}
+        onBack={handlePrevious}
+      />
 
-      <div className="banking-container px-4 py-4 sm:py-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Step Indicators - Desktop */}
-          <div className="hidden lg:block mb-6">
-            <StepIndicator steps={STEPS} currentStep={currentStep} />
+      {/* Main Content */}
+      <main className="flex-1 pb-24">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          {/* Circular Step Indicator */}
+          <div className="mb-4">
+            <CircularStepIndicator 
+              steps={STEPS} 
+              currentStep={currentStep}
+              variant={isMobile ? "compact" : "full"}
+            />
           </div>
 
-          {/* Current Step Card */}
-          <Card className="banking-card-elevated">
-            <CardHeader className="px-4 sm:px-6 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="step-indicator step-indicator-active flex-shrink-0">
-                  {currentStep === STEPS.length ? (
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    currentStep
-                  )}
+          {/* Step Content Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="rounded-2xl border-border shadow-card overflow-hidden">
+              <CardHeader className="px-4 py-4 border-b border-border/50 bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold ${
+                    currentStep === STEPS.length 
+                      ? "bg-success text-success-foreground" 
+                      : "bg-primary text-primary-foreground"
+                  }`}>
+                    {currentStep === STEPS.length ? (
+                      <CheckCircle className="w-5 h-5" />
+                    ) : (
+                      currentStep
+                    )}
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">
+                      <BilingualText 
+                        english={STEPS[currentStep - 1].title}
+                        bengali={STEPS[currentStep - 1].titleBengali}
+                      />
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      <BilingualText 
+                        english="Please fill in the required information"
+                        bengali="প্রয়োজনীয় তথ্য পূরণ করুন"
+                      />
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <CardTitle className="text-base sm:text-lg truncate">
-                    <BilingualText 
-                      english={STEPS[currentStep - 1].title}
-                      bengali={STEPS[currentStep - 1].titleBengali}
-                    />
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    <BilingualText 
-                      english="Please fill in the required information"
-                      bengali="প্রয়োজনীয় তথ্য পূরণ করুন"
-                    />
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 sm:px-6">
-              {renderStep()}
-            </CardContent>
-          </Card>
-
-          {/* Mobile Step Indicators */}
-          <div className="lg:hidden mt-4">
-            <div className="flex justify-center gap-1.5">
-              {STEPS.map((step) => (
-                <div
-                  key={step.id}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    step.id === currentStep
-                      ? "bg-primary w-4"
-                      : step.id < currentStep
-                      ? "bg-success"
-                      : "bg-muted"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+              </CardHeader>
+              
+              <CardContent className="px-4 py-4">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, x: stepDirection > 0 ? 30 : -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: stepDirection > 0 ? -30 : 30 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    {renderStep()}
+                  </motion.div>
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
-      </div>
+      </main>
+
+      {/* Fixed Bottom CTA - Hidden on final step */}
+      {currentStep !== 8 && (
+        <FixedBottomCTA
+          primaryLabel={{ english: "Save & Next", bengali: "সংরক্ষণ ও পরবর্তী" }}
+          onPrimaryClick={() => {
+            // Trigger form submit in child component
+            const form = document.querySelector("form");
+            if (form) {
+              form.requestSubmit();
+            } else {
+              // If no form, just call handleNext
+              handleNext();
+            }
+          }}
+          primaryLoading={isLoading}
+          secondaryLabel={currentStep > 1 ? { english: "Back", bengali: "পূর্ববর্তী" } : undefined}
+          onSecondaryClick={currentStep > 1 ? handlePrevious : undefined}
+        />
+      )}
     </div>
   );
 };
