@@ -540,6 +540,33 @@
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
+  /* PWA Native App Styles */
+  .app-container {
+    @apply min-h-screen flex flex-col bg-background;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  .app-content {
+    @apply flex-1 overflow-y-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch-friendly controls */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Card-based mobile layouts */
+  .app-card {
+    @apply bg-card rounded-2xl border border-border shadow-card;
+  }
+
+  .app-card-elevated {
+    @apply bg-card rounded-2xl shadow-elevated;
+  }
+
   .animate-slide-up {
     animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
