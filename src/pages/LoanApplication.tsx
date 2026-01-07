@@ -187,6 +187,25 @@ const LoanApplication = () => {
         </div>
       </main>
 
+      {/* Fixed Bottom CTA - Hidden on final step and on step 6 (Face Verification) for mobile */}
+      {currentStep !== 8 && !(isMobile && currentStep === 6) && (
+        <FixedBottomCTA
+          primaryLabel={{ english: "Next", bengali: "পরবর্তী" }}
+          onPrimaryClick={() => {
+            // Trigger form submit in child component
+            const form = document.querySelector("form");
+            if (form) {
+              form.requestSubmit();
+            } else {
+              // If no form, just call handleNext
+              handleNext();
+            }
+          }}
+          primaryLoading={isLoading}
+          secondaryLabel={currentStep > 1 ? { english: "Cancel", bengali: "বাতিল" } : undefined}
+          onSecondaryClick={currentStep > 1 ? handlePrevious : undefined}
+        />
+      )}
     </div>
   );
 };

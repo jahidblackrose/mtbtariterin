@@ -263,53 +263,36 @@ const stepApis = {
   },
 };
 
-// Unified service for step submission with API status validation
+// Unified service for step submission
 export const loanStepService = {
   async getPrefillData() {
     return stepApis.getPrefillData();
   },
 
   async submitStep(stepNumber: number, data: any): Promise<ApiResponse<StepResponse<any>>> {
-    let response: ApiResponse<StepResponse<any>>;
-    
     switch (stepNumber) {
       case 1:
-        response = await stepApis.submitStep1(data);
-        break;
+        return stepApis.submitStep1(data);
       case 2:
-        response = await stepApis.submitStep2(data);
-        break;
+        return stepApis.submitStep2(data);
       case 3:
-        response = await stepApis.submitStep3(data);
-        break;
+        return stepApis.submitStep3(data);
       case 4:
-        response = await stepApis.submitStep4(data);
-        break;
+        return stepApis.submitStep4(data);
       case 5:
-        response = await stepApis.submitStep5(data);
-        break;
+        return stepApis.submitStep5(data);
       case 6:
-        response = await stepApis.submitStep6(data);
-        break;
+        return stepApis.submitStep6(data);
       case 7:
-        response = await stepApis.submitStep7(data);
-        break;
+        return stepApis.submitStep7(data);
       case 8:
-        response = await stepApis.submitStep8();
-        break;
+        return stepApis.submitStep8();
       default:
         return {
           success: false,
           message: "Invalid step number",
         };
     }
-
-    // Validate API response - only proceed if success (simulates status 200 check)
-    if (!response.success) {
-      throw new Error(response.message || "API request failed");
-    }
-    
-    return response;
   },
 };
 
