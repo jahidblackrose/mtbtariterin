@@ -5,3 +5,4 @@ export { BottomSheet } from "./BottomSheet";
 export { FixedBottomCTA } from "./FixedBottomCTA";
 export { PageTransition, StepTransition, FadeTransition } from "./PageTransition";
 export { AppSelect } from "./AppSelect";
+export { InstallPrompt } from "./InstallPrompt";
