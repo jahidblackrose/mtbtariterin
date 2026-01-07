@@ -8,7 +8,7 @@ import { ArrowRight, Shield, FileText, AlertTriangle } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface TermsConditionsStepProps {
-  onNext: () => void;
+  onNext: (data: any) => void;
   data: any;
 }
 
@@ -19,17 +19,21 @@ export const TermsConditionsStep = ({ onNext, data }: TermsConditionsStepProps) 
     dataProcessingConsent: false,
     communicationConsent: false
   });
+  const [showError, setShowError] = useState(false);
 
   const handleAgreementChange = (field: string, value: boolean) => {
     setAgreements(prev => ({ ...prev, [field]: value }));
+    setShowError(false);
   };
 
   const allAgreementsAccepted = Object.values(agreements).every(Boolean);
 
   const handleSubmit = () => {
-    if (allAgreementsAccepted) {
-      onNext();
+    if (!allAgreementsAccepted) {
+      setShowError(true);
+      return;
     }
+    onNext({ agreements, termsAccepted: true });
   };
 
   return (
@@ -190,8 +194,8 @@ export const TermsConditionsStep = ({ onNext, data }: TermsConditionsStepProps) 
         </div>
       </div>
 
-      {/* Warning */}
-      {!allAgreementsAccepted && (
+      {/* Warning - shown when trying to submit without accepting */}
+      {(showError || !allAgreementsAccepted) && (
         <div className="flex items-start gap-3 p-4 bg-warning/10 rounded-lg border border-warning/20">
           <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
           <p className="text-sm text-warning-foreground">
@@ -203,18 +207,18 @@ export const TermsConditionsStep = ({ onNext, data }: TermsConditionsStepProps) 
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-end">
+      {/* Submit Button - only active when all terms accepted */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
         <Button 
-          onClick={handleSubmit} 
+          type="submit"
           disabled={!allAgreementsAccepted}
-          className="gradient-primary" 
+          className="w-full gradient-primary" 
           size="lg"
         >
           <BilingualText english="Submit Application" bengali="আবেদন জমা দিন" />
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
-      </div>
+      </form>
     </div>
   );
 };

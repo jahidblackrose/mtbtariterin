@@ -17,9 +17,12 @@ import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
+import mlineGradient from "@/assets/mline-gradient.png";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [existingLoans] = useState([
     {
       id: "LN001",
@@ -78,15 +81,26 @@ const Dashboard = () => {
       <div className="tech-grid" />
         
       <div className="relative z-10">
-        {/* Mobile-optimized Header */}
-        <header className="py-4 safe-area-top">
-          <div className="banking-container px-4">
+        {/* Mobile-optimized Header with mline background */}
+        <header className="py-4 safe-area-top relative overflow-hidden">
+          {/* Mline background for header */}
+          <div 
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              backgroundImage: `url(${mlineGradient})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center top',
+            }}
+          />
+          <div className="banking-container px-4 relative z-10">
             <div className="flex items-center justify-between gap-2">
-              {/* Logo with glow */}
+              {/* Logo with glow - hidden on mobile */}
               <div className="flex items-center gap-3 min-w-0">
-                <div className="logo-glow-container p-2 flex-shrink-0">
-                  <img src={mtbLogoFull} alt="MTB Logo" className="h-8 sm:h-10 w-auto" />
-                </div>
+                {!isMobile && (
+                  <div className="logo-glow-container p-2 flex-shrink-0">
+                    <img src={mtbLogoFull} alt="MTB Logo" className="h-8 sm:h-10 w-auto" />
+                  </div>
+                )}
                 <div className="min-w-0">
                   <h1 className="text-base sm:text-lg font-bold text-white drop-shadow truncate">
                     <BilingualText english="Tarit Loan" bengali="তরিৎ ঋণ" />
@@ -99,8 +113,12 @@ const Dashboard = () => {
               
               {/* Actions */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                <LanguageToggle variant="compact" className="bg-white/20 text-white hover:bg-white/30" />
-                <ThemeToggle variant="header" />
+                {!isMobile && (
+                  <>
+                    <LanguageToggle variant="compact" className="bg-white/20 text-white hover:bg-white/30" />
+                    <ThemeToggle variant="header" />
+                  </>
+                )}
                 <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/20 p-2">
                   <LogOut className="w-4 h-4" />
                 </Button>
