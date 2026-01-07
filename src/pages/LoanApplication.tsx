@@ -187,10 +187,10 @@ const LoanApplication = () => {
         </div>
       </main>
 
-      {/* Fixed Bottom CTA - Hidden on final step */}
-      {currentStep !== 8 && (
+      {/* Fixed Bottom CTA - Hidden on final step and on step 6 (Face Verification) for mobile */}
+      {currentStep !== 8 && !(isMobile && currentStep === 6) && (
         <FixedBottomCTA
-          primaryLabel={{ english: "Save & Next", bengali: "সংরক্ষণ ও পরবর্তী" }}
+          primaryLabel={{ english: "Next", bengali: "পরবর্তী" }}
           onPrimaryClick={() => {
             // Trigger form submit in child component
             const form = document.querySelector("form");
@@ -202,7 +202,7 @@ const LoanApplication = () => {
             }
           }}
           primaryLoading={isLoading}
-          secondaryLabel={currentStep > 1 ? { english: "Back", bengali: "পূর্ববর্তী" } : undefined}
+          secondaryLabel={currentStep > 1 ? { english: "Cancel", bengali: "বাতিল" } : undefined}
           onSecondaryClick={currentStep > 1 ? handlePrevious : undefined}
         />
       )}
