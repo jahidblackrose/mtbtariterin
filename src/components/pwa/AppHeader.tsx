@@ -52,7 +52,7 @@ export const AppHeader = ({
     >
       <div className="px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          {/* Left: Back button or Logo (Desktop only) */}
+          {/* Left: Back button + Title */}
           <div className="flex items-center gap-3 min-w-0">
             {showBack && (
               <Button
@@ -69,29 +69,13 @@ export const AppHeader = ({
               </Button>
             )}
 
-            {/* Desktop: Show logo */}
-            {!isMobile && (
-              <div className="hidden md:flex items-center gap-3">
-                <div className="logo-glow-container p-1.5">
-                  <img
-                    src={mtbLogoFull}
-                    alt="MTB Logo"
-                    className="h-8 w-auto"
-                  />
-                </div>
-                {title && (
-                  <div className="h-6 w-px bg-border" />
-                )}
-              </div>
-            )}
-
-            {/* Title */}
+            {/* Title - shown on all devices */}
             {title && (
               <div className="min-w-0">
                 <h1 className={`text-base font-semibold truncate ${textColor}`}>
                   <BilingualText english={title.english} bengali={title.bengali} />
                 </h1>
-                {subtitle && (
+                {subtitle && !isMobile && (
                   <p className={`text-xs truncate ${subtitleColor}`}>
                     <BilingualText english={subtitle.english} bengali={subtitle.bengali} />
                   </p>
@@ -100,18 +84,32 @@ export const AppHeader = ({
             )}
           </div>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Right: Desktop-only logo + actions */}
+          <div className="flex items-center gap-2 shrink-0">
             {rightContent}
-            <LanguageToggle
-              variant="compact"
-              className={
-                variant === "transparent"
-                  ? "bg-white/20 text-white hover:bg-white/30"
-                  : "bg-muted text-foreground hover:bg-accent"
-              }
-            />
-            <ThemeToggle variant={variant === "transparent" ? "header" : "default"} />
+            
+            {/* Desktop: Show logo and toggles */}
+            {!isMobile && (
+              <>
+                <LanguageToggle
+                  variant="compact"
+                  className={
+                    variant === "transparent"
+                      ? "bg-white/20 text-white hover:bg-white/30"
+                      : "bg-muted text-foreground hover:bg-accent"
+                  }
+                />
+                <ThemeToggle variant={variant === "transparent" ? "header" : "default"} />
+                <div className="h-6 w-px bg-border mx-1" />
+                <div className="logo-glow-container p-1.5">
+                  <img
+                    src={mtbLogoFull}
+                    alt="MTB Logo"
+                    className="h-8 w-auto"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
