@@ -68,13 +68,28 @@ const Login = () => {
   // Determine if tabs should be shown based on URL parameter
   // If loginType is explicitly set ('mobile' or 'account'), show only that tab
   // If not set or empty, show both tabs
-  const showBothTabs = !loginConfig.loginType || loginConfig.loginType === 'account';
+  const showBothTabs = !loginConfig.loginType;
   const [activeTab, setActiveTab] = useState<'account' | 'mobile'>(
     loginConfig.loginType === 'mobile' ? 'mobile' : 'account'
   );
   
   // loginType is the currently active tab
   const loginType = activeTab;
+
+  // Get loginvalue from URL if provided
+  const params = new URLSearchParams(window.location.search);
+  const loginValue = params.get('loginvalue') || '';
+
+  // Pre-fill the input if loginvalue is provided
+  useEffect(() => {
+    if (loginValue) {
+      if (loginConfig.loginType === 'mobile') {
+        setMobileNumber(loginValue);
+      } else if (loginConfig.loginType === 'account') {
+        setAccountNumber(loginValue);
+      }
+    }
+  }, [loginValue, loginConfig.loginType]);
 
   const accountInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
@@ -392,26 +407,6 @@ const Login = () => {
                 )}
               </Button>
 
-              {/* Separator */}
-              <div className="relative py-2">
-                <div className="mline-separator" />
-              </div>
-
-              {/* MTB Neo App Link */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-3">
-                  <BilingualText 
-                    english="Already have MTB Neo app?" 
-                    bengali="ইতিমধ্যে এমটিবি নিও অ্যাপ আছে?" 
-                  />
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full h-12 rounded-xl border-2"
-                >
-                  <BilingualText english="Access via MTB Neo" bengali="এমটিবি নিও দিয়ে অ্যাক্সেস" />
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
