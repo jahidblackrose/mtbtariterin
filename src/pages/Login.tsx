@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, CreditCard, Shield, Loader2, AlertCircle } from "lucide-react";
+import { Shield, Loader2, AlertCircle } from "lucide-react";
 import { BilingualText, LanguageToggle } from "@/components/BilingualText";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLoginConfig, useTheme, ThemeName } from "@/contexts/ThemeContext";
 import { 
   authService, 
   otpService, 
@@ -20,14 +20,53 @@ import {
 } from "@/services/api";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
+const ThemeSelector = () => {
+  const { theme, setTheme, availableThemes } = useTheme();
+  
+  const themeLabels: Record<ThemeName, string> = {
+    dark: 'Dark',
+    oasis: 'Oasis',
+    bloom: 'Bloom',
+    azure: 'Azure',
+    divine: 'Divine'
+  };
+
+  const themeColors: Record<ThemeName, string> = {
+    dark: 'bg-gray-800',
+    oasis: 'bg-emerald-600',
+    bloom: 'bg-pink-500',
+    azure: 'bg-blue-500',
+    divine: 'bg-purple-600'
+  };
+
+  return (
+    <div className="flex gap-1.5">
+      {availableThemes.map((t) => (
+        <button
+          key={t}
+          onClick={() => setTheme(t)}
+          className={`w-6 h-6 rounded-full border-2 transition-all ${themeColors[t]} ${
+            theme === t ? 'border-white scale-110 ring-2 ring-white/30' : 'border-white/30 hover:border-white/60'
+          }`}
+          title={themeLabels[t]}
+          aria-label={`Switch to ${themeLabels[t]} theme`}
+        />
+      ))}
+    </div>
+  );
+};
+
 const Login = () => {
+  const loginConfig = useLoginConfig();
   const [accountNumber, setAccountNumber] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
-  const [loginType, setLoginType] = useState<"account" | "mobile">("account");
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  // Determine login type from URL parameter (default: account)
+  const loginType = loginConfig.loginType || 'account';
 
   const accountInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
@@ -154,11 +193,6 @@ const Login = () => {
     }
   };
 
-  const handleLoginTypeChange = (type: "account" | "mobile") => {
-    setLoginType(type);
-    setValidationError("");
-  };
-
   const isSubmitDisabled = isLoading || 
     (loginType === "mobile" ? mobileNumber.length !== 11 : accountNumber.length !== 13);
 
@@ -188,9 +222,9 @@ const Login = () => {
             {/* Mobile: Empty space */}
             {isMobile && <div />}
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <ThemeSelector />
               <LanguageToggle variant="header" className="bg-white/20 text-white hover:bg-white/30" />
-              <ThemeToggle variant="header" />
             </div>
           </div>
         </div>
@@ -240,66 +274,14 @@ const Login = () => {
             </CardHeader>
             
             <CardContent className="space-y-5 px-5 pb-6">
-              {/* Login Type Toggle - App-like segmented control */}
-              <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-muted rounded-2xl">
-                <button
-                  type="button"
-                  onClick={() => handleLoginTypeChange("account")}
-                  className={`flex items-center justify-center gap-2 py-3.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    loginType === "account" 
-                      ? "bg-card text-foreground shadow-sm" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>
-                    <BilingualText english="Account" bengali="একাউন্ট" />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLoginTypeChange("mobile")}
-                  className={`flex items-center justify-center gap-2 py-3.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    loginType === "mobile" 
-                      ? "bg-card text-foreground shadow-sm" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>
-                    <BilingualText english="Mobile" bengali="মোবাইল" />
-                  </span>
-                </button>
-              </div>
-
-              {/* Input Fields */}
+              {/* Input Field - Single input based on loginType */}
               <motion.div
                 key={loginType}
-                initial={{ opacity: 0, x: loginType === "account" ? -20 : 20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {loginType === "account" ? (
-                  <div className="space-y-2">
-                    <Label className="text-foreground font-medium">
-                      <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
-                    </Label>
-                    <Input
-                      ref={accountInputRef}
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="Enter 13-digit account number"
-                      value={accountNumber}
-                      onChange={(e) => handleAccountChange(e.target.value)}
-                      className="h-14 text-lg rounded-xl"
-                      disabled={isLoading}
-                      maxLength={13}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {accountNumber.length}/13 digits
-                    </p>
-                  </div>
-                ) : (
+                {loginType === "mobile" ? (
                   <div className="space-y-2">
                     <Label className="text-foreground font-medium">
                       <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
@@ -317,6 +299,26 @@ const Login = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       {mobileNumber.length}/11 digits
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-medium">
+                      <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
+                    </Label>
+                    <Input
+                      ref={accountInputRef}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Enter 13-digit account number"
+                      value={accountNumber}
+                      onChange={(e) => handleAccountChange(e.target.value)}
+                      className="h-14 text-lg rounded-xl"
+                      disabled={isLoading}
+                      maxLength={13}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {accountNumber.length}/13 digits
                     </p>
                   </div>
                 )}
