@@ -202,7 +202,7 @@ const LoanApplication = () => {
             }
           }}
           primaryLoading={isLoading}
-          secondaryLabel={currentStep > 1 ? { english: "Cancel", bengali: "বাতিল" } : undefined}
+          secondaryLabel={currentStep > 1 ? { english: "Back", bengali: "পিছনে" } : undefined}
           onSecondaryClick={currentStep > 1 ? handlePrevious : undefined}
         />
       )}

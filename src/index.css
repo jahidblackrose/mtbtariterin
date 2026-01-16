@@ -184,6 +184,195 @@
     --sidebar-border: 222 30% 20%;
     --sidebar-ring: 221 70% 55%;
   }
+
+  /* ===== OASIS THEME - Warm nature-inspired with green & earth tones ===== */
+  .theme-oasis {
+    --background: 150 30% 96%;
+    --foreground: 150 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 25% 15%;
+
+    --primary: 168 60% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 168 55% 50%;
+    --primary-dark: 168 65% 25%;
+
+    --secondary: 149 100% 33%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 142 76% 50%;
+
+    --accent: 35 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 35 75% 60%;
+
+    --success: 149 100% 33%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 150 25% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 150 20% 92%;
+    --muted-foreground: 150 15% 40%;
+    --border: 150 18% 85%;
+    --input: 150 18% 85%;
+    --ring: 168 60% 35%;
+
+    --gradient-hero: linear-gradient(135deg, 
+      hsl(168 45% 25%) 0%,
+      hsl(150 40% 30%) 50%,
+      hsl(35 50% 35%) 100%
+    );
+    --gradient-mesh: radial-gradient(ellipse at 20% 30%, hsl(168 60% 50% / 0.2) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 70%, hsl(35 70% 50% / 0.15) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 50%, hsl(149 80% 40% / 0.1) 0%, transparent 60%);
+  }
+
+  /* ===== BLOOM THEME - Vibrant floral with pastel hues ===== */
+  .theme-bloom {
+    --background: 330 30% 97%;
+    --foreground: 330 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 330 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 330 25% 15%;
+
+    --primary: 168 60% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 168 55% 50%;
+    --primary-dark: 168 65% 25%;
+
+    --secondary: 149 100% 33%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 142 76% 50%;
+
+    --accent: 330 65% 55%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 330 70% 70%;
+
+    --success: 149 100% 33%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 330 25% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 330 20% 94%;
+    --muted-foreground: 330 15% 45%;
+    --border: 330 18% 88%;
+    --input: 330 18% 88%;
+    --ring: 168 60% 35%;
+
+    --gradient-hero: linear-gradient(135deg, 
+      hsl(168 45% 30%) 0%,
+      hsl(25 70% 55%) 30%,
+      hsl(330 60% 55%) 70%,
+      hsl(280 50% 50%) 100%
+    );
+    --gradient-mesh: radial-gradient(ellipse at 20% 30%, hsl(168 60% 50% / 0.2) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 70%, hsl(330 70% 60% / 0.18) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 50%, hsl(25 80% 55% / 0.12) 0%, transparent 60%);
+  }
+
+  /* ===== AZURE THEME - Cool calming blue tones ===== */
+  .theme-azure {
+    --background: 210 40% 97%;
+    --foreground: 210 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 30% 15%;
+
+    --primary: 200 70% 40%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 200 65% 55%;
+    --primary-dark: 200 75% 30%;
+
+    --secondary: 149 100% 33%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 142 76% 50%;
+
+    --accent: 220 60% 50%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 220 65% 65%;
+
+    --success: 149 100% 33%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 210 30% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 210 25% 93%;
+    --muted-foreground: 210 18% 45%;
+    --border: 210 20% 87%;
+    --input: 210 20% 87%;
+    --ring: 200 70% 40%;
+
+    --gradient-hero: linear-gradient(135deg, 
+      hsl(200 55% 30%) 0%,
+      hsl(210 50% 35%) 50%,
+      hsl(230 45% 40%) 100%
+    );
+    --gradient-mesh: radial-gradient(ellipse at 20% 30%, hsl(200 70% 50% / 0.2) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 70%, hsl(230 60% 55% / 0.15) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 50%, hsl(210 65% 45% / 0.1) 0%, transparent 60%);
+  }
+
+  /* ===== DIVINE THEME - Luxurious deep purples & golds ===== */
+  .theme-divine {
+    --background: 330 25% 96%;
+    --foreground: 330 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 330 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 330 30% 15%;
+
+    --primary: 330 55% 40%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 330 50% 55%;
+    --primary-dark: 330 60% 30%;
+
+    --secondary: 149 100% 33%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 142 76% 50%;
+
+    --accent: 40 75% 50%;
+    --accent-foreground: 330 30% 15%;
+    --accent-light: 40 80% 65%;
+
+    --success: 149 100% 33%;
+    --success-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 330 30% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 330 18% 93%;
+    --muted-foreground: 330 12% 45%;
+    --border: 330 15% 86%;
+    --input: 330 15% 86%;
+    --ring: 330 55% 40%;
+
+    --gradient-hero: linear-gradient(135deg, 
+      hsl(330 50% 35%) 0%,
+      hsl(340 45% 45%) 50%,
+      hsl(320 40% 50%) 100%
+    );
+    --gradient-mesh: radial-gradient(ellipse at 20% 30%, hsl(330 55% 50% / 0.2) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 70%, hsl(40 80% 55% / 0.15) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 50%, hsl(280 50% 45% / 0.12) 0%, transparent 60%);
+  }
 }
 
 @layer base {
