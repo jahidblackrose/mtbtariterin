@@ -21,13 +21,14 @@ export const parseThemeFromUrl = (): ThemeConfig => {
   
   const params = new URLSearchParams(window.location.search);
   const theme = params.get('theme')?.toLowerCase() as ThemeName | undefined;
-  const loginType = params.get('loginType') as 'mobile' | 'account' | undefined;
+  const loginTypeParam = params.get('loginType') as 'mobile' | 'account' | null;
   
   const validThemes: ThemeName[] = ['dark', 'oasis', 'bloom', 'azure', 'divine'];
   
   return {
     theme: theme && validThemes.includes(theme) ? theme : 'dark',
-    loginType: loginType || 'account'
+    // Only set loginType if explicitly passed, otherwise undefined (show both tabs)
+    loginType: loginTypeParam === 'mobile' || loginTypeParam === 'account' ? loginTypeParam : undefined
   };
 };
 
