@@ -202,19 +202,6 @@ export const TermsConditionsStep = ({ onNext, data }: TermsConditionsStepProps) 
           </p>
         </div>
       )}
-
-      {/* Action Buttons */}
-      <div className="flex justify-end">
-        <Button 
-          onClick={handleSubmit} 
-          disabled={!allAgreementsAccepted}
-          className="gradient-primary" 
-          size="lg"
-        >
-          <BilingualText english="Submit Application" bengali="আবেদন জমা দিন" />
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
     </div>
   );
 };

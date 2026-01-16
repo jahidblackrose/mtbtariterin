@@ -190,7 +190,10 @@ const LoanApplication = () => {
       {/* Fixed Bottom CTA - Hidden on final step and on step 6 (Face Verification) for mobile */}
       {currentStep !== 8 && !(isMobile && currentStep === 6) && (
         <FixedBottomCTA
-          primaryLabel={{ english: "Next", bengali: "পরবর্তী" }}
+          primaryLabel={currentStep === 7 
+            ? { english: "Submit", bengali: "জমা দিন" }
+            : { english: "Next", bengali: "পরবর্তী" }
+          }
           onPrimaryClick={() => {
             // Trigger form submit in child component
             const form = document.querySelector("form");
