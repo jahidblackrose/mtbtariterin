@@ -65,8 +65,16 @@ const Login = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  // Determine login type from URL parameter (default: account)
-  const loginType = loginConfig.loginType || 'account';
+  // Determine if tabs should be shown based on URL parameter
+  // If loginType is explicitly set ('mobile' or 'account'), show only that tab
+  // If not set or empty, show both tabs
+  const showBothTabs = !loginConfig.loginType || loginConfig.loginType === 'account';
+  const [activeTab, setActiveTab] = useState<'account' | 'mobile'>(
+    loginConfig.loginType === 'mobile' ? 'mobile' : 'account'
+  );
+  
+  // loginType is the currently active tab
+  const loginType = activeTab;
 
   const accountInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
@@ -274,7 +282,39 @@ const Login = () => {
             </CardHeader>
             
             <CardContent className="space-y-5 px-5 pb-6">
-              {/* Input Field - Single input based on loginType */}
+              {/* Tab Selector - Show only if both tabs are available */}
+              {showBothTabs && (
+                <div className="flex bg-muted rounded-xl p-1">
+                  <button
+                    onClick={() => {
+                      setActiveTab('account');
+                      setValidationError('');
+                    }}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'account'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <BilingualText english="Account" bengali="অ্যাকাউন্ট" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('mobile');
+                      setValidationError('');
+                    }}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'mobile'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <BilingualText english="Mobile" bengali="মোবাইল" />
+                  </button>
+                </div>
+              )}
+
+              {/* Input Field - Based on active tab */}
               <motion.div
                 key={loginType}
                 initial={{ opacity: 0, y: 10 }}
@@ -336,7 +376,7 @@ const Login = () => {
                 </motion.div>
               )}
 
-              {/* Login Button */}
+              {/* Next Button */}
               <Button 
                 onClick={handleLogin} 
                 disabled={isSubmitDisabled}
@@ -345,10 +385,10 @@ const Login = () => {
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <BilingualText english="Logging in..." bengali="লগইন হচ্ছে..." />
+                    <BilingualText english="Verifying..." bengali="যাচাই হচ্ছে..." />
                   </div>
                 ) : (
-                  <BilingualText english="Log In" bengali="লগইন" />
+                  <BilingualText english="Next" bengali="পরবর্তী" />
                 )}
               </Button>
 

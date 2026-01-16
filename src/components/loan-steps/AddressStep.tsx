@@ -213,13 +213,6 @@ export const AddressStep = ({ onNext, data }: AddressStepProps) => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end">
-        <Button onClick={handleNext} className="gradient-primary" size="lg">
-          <BilingualText english="Save & Next" bengali="সংরক্ষণ ও পরবর্তী" />
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
     </div>
   );
 };
