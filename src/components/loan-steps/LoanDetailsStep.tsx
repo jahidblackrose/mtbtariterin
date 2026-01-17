@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, ArrowRight, Calculator, Clock } from "lucide-react";
+import { Calculator, Clock } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface LoanDetailsStepProps {
@@ -207,13 +206,6 @@ export const LoanDetailsStep = ({ onNext, data }: LoanDetailsStepProps) => {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end">
-        <Button onClick={handleNext} className="gradient-primary" size="lg">
-          <BilingualText english="Save & Next" bengali="সংরক্ষণ ও পরবর্তী" />
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
     </div>
   );
 };

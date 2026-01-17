@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, ArrowRight, AlertCircle } from "lucide-react";
+import { CreditCard, AlertCircle } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface ExistingLoansStepProps {
@@ -130,14 +129,14 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
       </div>
 
       {/* Information Note */}
-      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-medium text-primary mb-1">
+            <p className="font-medium text-foreground mb-1">
               <BilingualText english="Important Information" bengali="গুরুত্বপূর্ণ তথ্য" />
             </p>
-            <p className="text-primary/80">
+            <p className="text-muted-foreground">
               <BilingualText 
                 english="Your existing loan information helps us assess your eligibility and determine the best loan terms for you. All information will be verified through credit bureau reports." 
                 bengali="আপনার বিদ্যমান ঋণের তথ্য আমাদের আপনার যোগ্যতা মূল্যায়ন এবং আপনার জন্য সর্বোত্তম ঋণের শর্তাবলী নির্ধারণ করতে সহায়তা করে। সমস্ত তথ্য ক্রেডিট ব্যুরো রিপোর্টের মাধ্যমে যাচাই করা হবে।" 
@@ -145,14 +144,6 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end">
-        <Button onClick={handleNext} className="gradient-primary" size="lg">
-          <BilingualText english="Save & Next" bengali="সংরক্ষণ ও পরবর্তী" />
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
       </div>
     </div>
   );
