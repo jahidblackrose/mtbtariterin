@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User, ArrowRight } from "lucide-react";
+import { User } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface PersonalInfoStepProps {
@@ -149,21 +148,13 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
       <Separator />
 
       {/* Note */}
-      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-        <p className="text-sm text-primary">
+      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+        <p className="text-sm text-foreground">
           <BilingualText 
             english="📝 Note: Most information is pre-filled from your account. You can update email and occupation if needed." 
             bengali="📝 দ্রষ্টব্য: বেশিরভাগ তথ্য আপনার অ্যাকাউন্ট থেকে পূর্বেই ভরা। প্রয়োজনে আপনি ইমেইল এবং পেশা আপডেট করতে পারেন।" 
           />
         </p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end">
-        <Button onClick={handleNext} className="gradient-primary" size="lg">
-          <BilingualText english="Save & Next" bengali="সংরক্ষণ ও পরবর্তী" />
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
       </div>
     </div>
   );

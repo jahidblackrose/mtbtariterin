@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, FileText, User, MapPin, CreditCard, DollarSign } from "lucide-react";
+import { FileText, User, MapPin, CreditCard, DollarSign } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface LoanSummaryStepProps {
@@ -197,8 +196,8 @@ export const LoanSummaryStep = ({ onNext, data }: LoanSummaryStepProps) => {
       </Card>
 
       {/* Important Note */}
-      <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
-        <p className="text-sm text-accent-foreground">
+      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
+        <p className="text-sm text-foreground">
           <strong>
             <BilingualText english="📋 Important:" bengali="📋 গুরুত্বপূর্ণ:" />
           </strong>{" "}
@@ -207,14 +206,6 @@ export const LoanSummaryStep = ({ onNext, data }: LoanSummaryStepProps) => {
             bengali="সমস্ত তথ্য সাবধানে পর্যালোচনা করুন। এগিয়ে যাওয়ার পরে, আপনাকে মুখ যাচাইকরণ সম্পূর্ণ করতে এবং শর্তাবলী গ্রহণ করতে হবে।" 
           />
         </p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end">
-        <Button onClick={onNext} className="gradient-primary" size="lg">
-          <BilingualText english="Continue to Verification" bengali="যাচাইকরণে চলুন" />
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
       </div>
     </div>
   );
