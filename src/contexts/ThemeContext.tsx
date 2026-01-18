@@ -17,18 +17,24 @@ interface ThemeConfig {
 }
 
 export const parseThemeFromUrl = (): ThemeConfig => {
-  if (typeof window === 'undefined') return { theme: 'dark' };
-  
+  if (typeof window === 'undefined') return {};
+
   const params = new URLSearchParams(window.location.search);
-  const theme = params.get('theme')?.toLowerCase() as ThemeName | undefined;
-  const loginTypeParam = params.get('loginType') as 'mobile' | 'account' | null;
-  
+
+  const rawTheme = params.get('theme');
+  const theme = rawTheme ? (rawTheme.toLowerCase() as ThemeName) : undefined;
+
+  // Accept both loginType and logintype (case-insensitive key support)
+  const rawLoginType = (params.get('loginType') ?? params.get('logintype') ?? '').toLowerCase();
+  const loginTypeParam = rawLoginType === 'mobile' || rawLoginType === 'account' ? (rawLoginType as 'mobile' | 'account') : undefined;
+
   const validThemes: ThemeName[] = ['dark', 'oasis', 'bloom', 'azure', 'divine'];
-  
+
   return {
-    theme: theme && validThemes.includes(theme) ? theme : 'dark',
+    // Only set theme if explicitly passed and valid
+    theme: theme && validThemes.includes(theme) ? theme : undefined,
     // Only set loginType if explicitly passed, otherwise undefined (show both tabs)
-    loginType: loginTypeParam === 'mobile' || loginTypeParam === 'account' ? loginTypeParam : undefined
+    loginType: loginTypeParam,
   };
 };
 
@@ -42,17 +48,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   defaultTheme 
 }) => {
   const [theme, setThemeState] = useState<ThemeName>(() => {
-    // Priority: 1. URL param, 2. localStorage, 3. defaultTheme, 4. 'dark'
+    // Priority: 1. URL param (if explicitly passed), 2. localStorage, 3. defaultTheme, 4. 'dark'
     const urlConfig = parseThemeFromUrl();
-    if (urlConfig.theme && urlConfig.theme !== 'dark') {
+    if (urlConfig.theme) {
       return urlConfig.theme;
     }
-    
+
     const stored = localStorage.getItem('mtb-theme') as ThemeName | null;
     if (stored && ['dark', 'oasis', 'bloom', 'azure', 'divine'].includes(stored)) {
       return stored;
     }
-    
+
     return defaultTheme || 'dark';
   });
 
@@ -94,11 +100,12 @@ export const useTheme = (): ThemeContextType => {
 
 // Hook to get login configuration from URL
 export const useLoginConfig = () => {
-  const [config, setConfig] = useState<ThemeConfig>({ theme: 'dark', loginType: 'account' });
-  
+  // IMPORTANT: initialize from URL immediately (avoids first-render mismatch on Login screen)
+  const [config, setConfig] = useState<ThemeConfig>(() => parseThemeFromUrl());
+
   useEffect(() => {
     setConfig(parseThemeFromUrl());
   }, []);
-  
+
   return config;
 };
