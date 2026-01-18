@@ -82,12 +82,30 @@ const Login = () => {
 
   // Pre-fill the input if loginvalue is provided
   useEffect(() => {
-    if (loginValue) {
-      if (loginConfig.loginType === 'mobile') {
-        setMobileNumber(loginValue);
-      } else if (loginConfig.loginType === 'account') {
-        setAccountNumber(loginValue);
-      }
+    if (!loginValue) return;
+
+    const cleaned = loginValue.replace(/\D/g, '');
+
+    // If loginType is explicitly provided, respect it.
+    if (loginConfig.loginType === 'mobile') {
+      setActiveTab('mobile');
+      if (cleaned.length === 11) setMobileNumber(cleaned);
+      return;
+    }
+
+    if (loginConfig.loginType === 'account') {
+      setActiveTab('account');
+      if (cleaned.length === 13) setAccountNumber(cleaned);
+      return;
+    }
+
+    // Otherwise, infer from the value (keeps both tabs available).
+    if (cleaned.length === 11 && cleaned.startsWith('01')) {
+      setActiveTab('mobile');
+      setMobileNumber(cleaned);
+    } else if (cleaned.length === 13) {
+      setActiveTab('account');
+      setAccountNumber(cleaned);
     }
   }, [loginValue, loginConfig.loginType]);
 
@@ -421,12 +439,6 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Demo Note */}
-          <div className="mt-3 text-center">
-            <p className="text-xs text-white/50 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 inline-block">
-              Demo: Use any valid format. OTP: 123456
-            </p>
-          </div>
         </motion.div>
       </div>
     </div>

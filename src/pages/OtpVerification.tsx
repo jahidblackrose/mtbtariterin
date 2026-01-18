@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,8 +22,7 @@ const OtpVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { timeRemaining, isExpired, formattedTime, resetTimer } = useOtpTimer(120);
-  const otpInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { accountNumber, mobileNumber } = location.state || {};
 
   // Auto-focus OTP input on mount
@@ -353,12 +352,6 @@ const OtpVerification = () => {
                 </p>
               </div>
 
-              {/* Demo Hint */}
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-lg inline-block">
-                  Demo OTP: <span className="font-mono font-bold">123456</span>
-                </p>
-              </div>
             </CardContent>
           </Card>
 

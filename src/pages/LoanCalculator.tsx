@@ -12,18 +12,18 @@ import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
 const LoanCalculator = () => {
   const navigate = useNavigate();
-  const [loanAmount, setLoanAmount] = useState([100000]);
-  const [loanTenure, setLoanTenure] = useState([12]);
-  const [interestRate] = useState(12);
+  const [loanAmount, setLoanAmount] = useState([25000]);
+  const [loanTenure, setLoanTenure] = useState([3]);
+  const [interestRate, setInterestRate] = useState([12]);
 
   const calculateEMI = () => {
     const principal = loanAmount[0];
     const tenure = loanTenure[0];
-    const monthlyRate = interestRate / 12 / 100;
-    
-    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / 
+    const monthlyRate = interestRate[0] / 12 / 100;
+
+    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenure)) /
                 (Math.pow(1 + monthlyRate, tenure) - 1);
-    
+
     return Math.round(emi);
   };
 
@@ -35,8 +35,8 @@ const LoanCalculator = () => {
     return calculateTotalAmount() - loanAmount[0];
   };
 
-  const maxLoanAmount = 500000;
-  const maxTenure = 60;
+  const maxLoanAmount = 50000;
+  const maxTenure = 6;
 
   return (
     <div className="min-h-screen bg-background">
@@ -121,13 +121,13 @@ const LoanCalculator = () => {
                     value={loanAmount}
                     onValueChange={setLoanAmount}
                     max={maxLoanAmount}
-                    min={10000}
-                    step={5000}
+                    min={5000}
+                    step={1000}
                     className="w-full"
                   />
                   
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>৳10,000</span>
+                    <span>৳5,000</span>
                     <span>৳{maxLoanAmount.toLocaleString()}</span>
                   </div>
                 </div>
@@ -153,13 +153,13 @@ const LoanCalculator = () => {
                     value={loanTenure}
                     onValueChange={setLoanTenure}
                     max={maxTenure}
-                    min={6}
-                    step={3}
+                    min={1}
+                    step={1}
                     className="w-full"
                   />
                   
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>6 <BilingualText english="mo" bengali="মাস" /></span>
+                    <span>1 <BilingualText english="mo" bengali="মাস" /></span>
                     <span>{maxTenure} <BilingualText english="mo" bengali="মাস" /></span>
                   </div>
                 </div>
@@ -167,14 +167,30 @@ const LoanCalculator = () => {
                 <Separator />
 
                 {/* Interest Rate */}
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <Label className="text-sm font-medium">
-                    <BilingualText english="Interest Rate" bengali="সুদের হার" />
-                  </Label>
-                  <div className="text-lg sm:text-xl font-bold text-primary">
-                    {interestRate}% <span className="text-xs sm:text-sm font-medium">
-                      <BilingualText english="p.a." bengali="বার্ষিক" />
-                    </span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      <BilingualText english="Interest Rate" bengali="সুদের হার" />
+                    </Label>
+                    <div className="text-lg sm:text-xl font-bold text-primary">
+                      {interestRate[0].toFixed(1)}% <span className="text-xs sm:text-sm font-medium">
+                        <BilingualText english="p.a." bengali="বার্ষিক" />
+                      </span>
+                    </div>
+                  </div>
+
+                  <Slider
+                    value={interestRate}
+                    onValueChange={setInterestRate}
+                    max={14}
+                    min={7}
+                    step={0.5}
+                    className="w-full"
+                  />
+
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>7.0%</span>
+                    <span>14.0%</span>
                   </div>
                 </div>
               </CardContent>
