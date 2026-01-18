@@ -3,15 +3,17 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { ArrowLeft, Shield, RefreshCw, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Shield, RefreshCw, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { useOtpTimer } from "@/hooks/useOtpTimer";
-import { otpService, ApiError, ERROR_MESSAGES } from "@/services/api";
+import { loanApplicationApi } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext, updateSessionContext } from "@/services/apiClient";
+import { useApplicationData } from "@/contexts/ApplicationDataContext";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
-type VerificationStatus = 'idle' | 'verifying' | 'success' | 'error';
+type VerificationStatus = 'idle' | 'verifying' | 'success' | 'fetching' | 'error';
 
 const OtpVerification = () => {
   const [otp, setOtp] = useState("");
@@ -22,13 +24,13 @@ const OtpVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { timeRemaining, isExpired, formattedTime, resetTimer } = useOtpTimer(120);
+  const { mapFetchAllDataResponse } = useApplicationData();
 
   const { accountNumber, mobileNumber } = location.state || {};
 
   // Auto-focus OTP input on mount
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Focus the OTP input container
       const otpInput = document.querySelector('[data-input-otp]') as HTMLInputElement;
       if (otpInput) {
         otpInput.focus();
@@ -61,47 +63,74 @@ const OtpVerification = () => {
     setErrorMessage("");
 
     try {
-      const response = await otpService.verifyOtp({
+      // Get session context from registration step
+      const session = getSessionContext();
+      
+      // Validate OTP via API
+      const otpResponse = await loanApplicationApi.validateOtp({
         otp: otpValue,
-        accountNumber,
-        mobileNumber,
+        otpref: session.otpref || "",
+        mobilenumber: mobileNumber || session.mobileNumber || "",
+        regiref: session.regiref || "",
+        loginid: session.loginId || "",
       });
 
-      if (response.success && response.data) {
+      if (isSuccessResponse(otpResponse)) {
+        setVerificationStatus('fetching');
+        
+        // Store basic info in session
+        const applicationId = otpResponse.applicationid;
+        const customerId = otpResponse.customernumber;
+        const accNumber = otpResponse.accountnumber;
+        
+        updateSessionContext({
+          applicationId,
+          customerId,
+          accountNumber: accNumber,
+          cif: customerId,
+        });
+
+        // Fetch all application data
+        const fetchResponse = await loanApplicationApi.fetchAllData({
+          applicationid: applicationId,
+          cif: customerId,
+        });
+
+        if (isSuccessResponse(fetchResponse)) {
+          // Map the response to application context
+          mapFetchAllDataResponse(fetchResponse, {
+            applicationId,
+            accountNumber: accNumber,
+            customerId,
+            profileStatus: otpResponse.profilestatus,
+            loanAcNo: otpResponse.loanacno,
+          });
+        }
+
         setVerificationStatus('success');
-        localStorage.setItem('auth_token', response.data.token);
         
         toast({
           title: "OTP Verified",
-          description: "Login successful. Redirecting...",
+          description: "Login successful. Loading your application...",
         });
 
         setTimeout(() => {
-          navigate("/dashboard");
+          navigate("/loan-application");
         }, 1500);
-      }
-    } catch (error) {
-      setVerificationStatus('error');
-      
-      if (error instanceof ApiError) {
-        setErrorMessage(ERROR_MESSAGES[error.code] || error.message);
-        toast({
-          title: "Verification Failed",
-          description: ERROR_MESSAGES[error.code] || error.message,
-          variant: "destructive",
-        });
       } else {
-        setErrorMessage(ERROR_MESSAGES.SERVER_ERROR);
-        toast({
-          title: "Error",
-          description: ERROR_MESSAGES.SERVER_ERROR,
-          variant: "destructive",
-        });
+        throw new Error(otpResponse.message || "OTP verification failed");
       }
-      
+    } catch (error: any) {
+      setVerificationStatus('error');
+      setErrorMessage(error.message || "Verification failed. Please try again.");
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
       setOtp("");
     }
-  }, [accountNumber, mobileNumber, navigate]);
+  }, [mobileNumber, navigate, mapFetchAllDataResponse]);
 
   const handleOtpChange = (value: string) => {
     setOtp(value);
@@ -124,12 +153,16 @@ const OtpVerification = () => {
     setVerificationStatus('idle');
 
     try {
-      const response = await otpService.resendOtp({
-        accountNumber,
-        mobileNumber,
+      const session = getSessionContext();
+      
+      const response = await loanApplicationApi.resendOtp({
+        otpmedium: "sms",
+        mobilenumber: mobileNumber || session.mobileNumber || "",
+        regiref: session.regiref || "",
+        loginid: session.loginId || "",
       });
 
-      if (response.success) {
+      if (isSuccessResponse(response)) {
         resetTimer();
         setOtp("");
         
@@ -145,21 +178,15 @@ const OtpVerification = () => {
             otpInput.focus();
           }
         }, 100);
-      }
-    } catch (error) {
-      if (error instanceof ApiError) {
-        toast({
-          title: "Failed to Resend",
-          description: ERROR_MESSAGES[error.code] || error.message,
-          variant: "destructive",
-        });
       } else {
-        toast({
-          title: "Error",
-          description: ERROR_MESSAGES.NETWORK_ERROR,
-          variant: "destructive",
-        });
+        throw new Error(response.message || "Failed to resend OTP");
       }
+    } catch (error: any) {
+      toast({
+        title: "Failed to Resend",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsResending(false);
     }
@@ -303,6 +330,13 @@ const OtpVerification = () => {
                 <div className="flex items-center justify-center gap-2 text-muted-foreground animate-fade-in">
                   <RefreshCw className="w-4 h-4 animate-spin" />
                   <BilingualText english="Verifying OTP..." bengali="ওটিপি যাচাই করা হচ্ছে..." />
+                </div>
+              )}
+
+              {verificationStatus === 'fetching' && (
+                <div className="flex items-center justify-center gap-2 text-primary animate-fade-in">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <BilingualText english="Loading your application..." bengali="আপনার আবেদন লোড হচ্ছে..." />
                 </div>
               )}
 

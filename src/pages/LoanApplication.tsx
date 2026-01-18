@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { CompactStepHeader, FixedBottomCTA } from "@/components/pwa";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,7 +14,9 @@ import { LoanSummaryStep } from "@/components/loan-steps/LoanSummaryStep";
 import { FaceVerificationStep } from "@/components/loan-steps/FaceVerificationStep";
 import { TermsConditionsStep } from "@/components/loan-steps/TermsConditionsStep";
 import { ApplicationConfirmationStep } from "@/components/loan-steps/ApplicationConfirmationStep";
-import { loanStepService } from "@/services/loanStepApi";
+import { useApplicationData } from "@/contexts/ApplicationDataContext";
+import { loanApplicationApi } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
 import { toast } from "@/hooks/use-toast";
 
 const STEPS = [
@@ -31,50 +33,106 @@ const STEPS = [
 const LoanApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [stepDirection, setStepDirection] = useState(1);
-  const [applicationData, setApplicationData] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
+  const { applicationData } = useApplicationData();
 
-  // Submit step data to API
-  const submitStepData = useCallback(async (step: number, data: any) => {
-    setIsLoading(true);
-    try {
-      const response = await loanStepService.submitStep(step, data);
-      if (response.success) {
-        return response.data;
-      }
-      throw new Error(response.message || "Failed to save step data");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save data. Please try again.",
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
+  // Transform context data for step components
+  const prefilledData = useMemo(() => {
+    const data: Record<string, any> = {
+      isReadOnly: applicationData.isReadOnly,
+      isDataLoaded: applicationData.isDataLoaded,
+    };
+
+    // Map personal data
+    if (applicationData.personalData) {
+      const p = applicationData.personalData;
+      data.fullName = p.fullname || "";
+      data.fatherName = p.fathername || "";
+      data.motherName = p.mothername || "";
+      data.dateOfBirth = p.dob || "";
+      data.nidNumber = p.nidnumber || "";
+      data.mobileNumber = p.mobilenumber || "";
+      data.email = p.email || "";
+      data.occupation = p.profession || "";
+      data.gender = p.gender || "";
+      data.maritalStatus = p.maritalstatus || "";
+      data.spouseName = p.spousename || "";
+      data.tin = p.tinnumber || "";
     }
-  }, []);
 
+    // Map contact/address data
+    if (applicationData.contactData) {
+      const c = applicationData.contactData;
+      data.presentAddress = {
+        addressLine1: c.presentaddr1 || "",
+        addressLine2: c.presentaddr2 || "",
+        country: c.presentcountry || "Bangladesh",
+        district: c.presentdistrict || "",
+        districtName: c.presentdistrictname || "",
+        thana: c.presentthana || "",
+        thanaName: c.presentthananame || "",
+        postCode: c.presentpostcode || "",
+      };
+      data.permanentAddress = {
+        addressLine1: c.permanentaddr1 || "",
+        addressLine2: c.permanentaddr2 || "",
+        country: c.permanentcountry || "Bangladesh",
+        district: c.permanentdistrict || "",
+        districtName: c.permanentdistrictname || "",
+        thana: c.permanentthana || "",
+        thanaName: c.permanentthananame || "",
+        postCode: c.permanentpostcode || "",
+      };
+      data.professionalAddress = {
+        addressLine1: c.professionaddr1 || "",
+        addressLine2: c.professionaddr2 || "",
+        country: c.professioncountry || "Bangladesh",
+        district: c.professiondistrict || "",
+        districtName: c.professiondistrictname || "",
+        thana: c.professionthana || "",
+        thanaName: c.professionthananame || "",
+        postCode: c.professionpostcode || "",
+      };
+      data.communicationAddress = c.preferredcommunication || "present";
+    }
+
+    // Map liability data
+    if (applicationData.liabilityData && applicationData.liabilityData.length > 0) {
+      data.existingLoans = applicationData.liabilityData;
+    }
+
+    // Map loan details from acMasterData
+    if (applicationData.acMasterData) {
+      const l = applicationData.acMasterData;
+      data.loanPurpose = l.loanpurpose || "";
+      data.loanAmount = l.loanamount ? [parseInt(l.loanamount)] : [100000];
+      data.loanTenure = l.tenormonth ? [parseInt(l.tenormonth)] : [12];
+      data.emi = l.monthlyemi || "";
+      data.interestRate = l.interestrate || "";
+      data.appliedBranch = l.appliedbranch || "";
+      data.productName = l.productname || "";
+    }
+
+    // Map document data
+    if (applicationData.documentData && applicationData.documentData.length > 0) {
+      data.documents = applicationData.documentData;
+    }
+
+    return data;
+  }, [applicationData]);
+
+  // Handle navigation to next step
   const handleNext = useCallback(async (stepData?: any) => {
-    if (stepData) {
-      // Submit to API
-      const result = await submitStepData(currentStep, stepData);
-      if (!result && currentStep !== 8) {
-        // API call failed, don't proceed (except for final step)
-        return;
-      }
-      setApplicationData(prev => ({ ...prev, ...stepData, ...result }));
-    }
-    
     if (currentStep < STEPS.length) {
       setStepDirection(1);
       setCurrentStep(prev => prev + 1);
     }
-  }, [currentStep, submitStepData]);
+  }, [currentStep]);
 
+  // Handle back navigation
   const handlePrevious = useCallback(() => {
     if (currentStep > 1) {
       setStepDirection(-1);
@@ -84,8 +142,41 @@ const LoanApplication = () => {
     }
   }, [currentStep, navigate]);
 
+  // Handle final submission
+  const handleSubmit = useCallback(async () => {
+    setIsSubmitting(true);
+    try {
+      const session = getSessionContext();
+      const response = await loanApplicationApi.submitApplication({
+        applicationid: session.applicationId || applicationData.applicationId,
+      });
+
+      if (isSuccessResponse(response)) {
+        toast({
+          title: "Application Submitted",
+          description: "Your loan application has been submitted successfully!",
+        });
+        setCurrentStep(8); // Move to confirmation
+      } else {
+        throw new Error(response.message || "Failed to submit application");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Submission Failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [applicationData.applicationId]);
+
   const renderStep = () => {
-    const stepProps = { onNext: handleNext, data: applicationData };
+    const stepProps = { 
+      onNext: handleNext, 
+      data: prefilledData,
+      isReadOnly: applicationData.isReadOnly,
+    };
     
     switch (currentStep) {
       case 1:
@@ -101,9 +192,9 @@ const LoanApplication = () => {
       case 6:
         return <FaceVerificationStep {...stepProps} />;
       case 7:
-        return <TermsConditionsStep {...stepProps} />;
+        return <TermsConditionsStep {...stepProps} onSubmit={handleSubmit} isSubmitting={isSubmitting} />;
       case 8:
-        return <ApplicationConfirmationStep data={applicationData} />;
+        return <ApplicationConfirmationStep data={prefilledData} />;
       default:
         return <PersonalInfoStep {...stepProps} />;
     }
@@ -111,6 +202,9 @@ const LoanApplication = () => {
 
   // Get current step title for header
   const currentStepTitle = STEPS[currentStep - 1];
+
+  // Determine if we should show the bottom CTA
+  const showBottomCTA = currentStep !== 8 && currentStep !== 7 && !(isMobile && currentStep === 6);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -155,10 +249,17 @@ const LoanApplication = () => {
                       />
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      <BilingualText 
-                        english="Please fill in the required information"
-                        bengali="প্রয়োজনীয় তথ্য পূরণ করুন"
-                      />
+                      {applicationData.isReadOnly ? (
+                        <BilingualText 
+                          english="Review your information"
+                          bengali="আপনার তথ্য পর্যালোচনা করুন"
+                        />
+                      ) : (
+                        <BilingualText 
+                          english="Please fill in the required information"
+                          bengali="প্রয়োজনীয় তথ্য পূরণ করুন"
+                        />
+                      )}
                     </CardDescription>
                   </div>
                 </div>
@@ -182,23 +283,11 @@ const LoanApplication = () => {
         </div>
       </main>
 
-      {/* Fixed Bottom CTA - Hidden on final step and on step 6 (Face Verification) for mobile */}
-      {currentStep !== 8 && !(isMobile && currentStep === 6) && (
+      {/* Fixed Bottom CTA - Only for navigation steps (not Terms or Confirmation) */}
+      {showBottomCTA && (
         <FixedBottomCTA
-          primaryLabel={currentStep === 7 
-            ? { english: "Submit", bengali: "জমা দিন" }
-            : { english: "Next", bengali: "পরবর্তী" }
-          }
-          onPrimaryClick={() => {
-            // Trigger form submit in child component
-            const form = document.querySelector("form");
-            if (form) {
-              form.requestSubmit();
-            } else {
-              // If no form, just call handleNext
-              handleNext();
-            }
-          }}
+          primaryLabel={{ english: "Next", bengali: "পরবর্তী" }}
+          onPrimaryClick={() => handleNext()}
           primaryLoading={isLoading}
           secondaryLabel={currentStep > 1 ? { english: "Back", bengali: "পিছনে" } : undefined}
           onSecondaryClick={currentStep > 1 ? handlePrevious : undefined}
