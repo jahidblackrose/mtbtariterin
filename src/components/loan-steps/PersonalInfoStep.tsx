@@ -1,33 +1,28 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User } from "lucide-react";
+import { User, Lock } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 
 interface PersonalInfoStepProps {
   onNext: (data: any) => void;
   data: any;
+  isReadOnly?: boolean;
 }
 
-export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
-  const [formData, setFormData] = useState({
-    fullName: data.fullName || "Mohammad Rahman",
-    fatherName: data.fatherName || "Abdul Rahman",
-    motherName: data.motherName || "Fatima Rahman", 
-    dateOfBirth: data.dateOfBirth || "1985-05-15",
-    nidNumber: data.nidNumber || "1234567890123",
-    mobileNumber: data.mobileNumber || "+880 1712-345678",
-    email: data.email || "mohammad.rahman@email.com",
-    occupation: data.occupation || "Business Owner"
-  });
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleNext = () => {
-    onNext(formData);
+export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalInfoStepProps) => {
+  // All fields are read-only when data is prefilled from API
+  const formData = {
+    fullName: data.fullName || "",
+    fatherName: data.fatherName || "",
+    motherName: data.motherName || "",
+    dateOfBirth: data.dateOfBirth || "",
+    nidNumber: data.nidNumber || "",
+    mobileNumber: data.mobileNumber || "",
+    email: data.email || "",
+    occupation: data.occupation || "",
+    gender: data.gender || "",
+    maritalStatus: data.maritalStatus || "",
   };
 
   return (
@@ -35,20 +30,26 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
       {/* Header */}
       <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
         <User className="w-5 h-5 text-primary flex-shrink-0" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-sm">
-            <BilingualText english="Personal Information Review" bengali="ব্যক্তিগত তথ্য পর্যালোচনা" />
+            <BilingualText english="Personal Information" bengali="ব্যক্তিগত তথ্য" />
           </h3>
           <p className="text-xs text-muted-foreground">
             <BilingualText 
-              english="Please verify your personal details below" 
-              bengali="নিচে আপনার ব্যক্তিগত বিবরণ যাচাই করুন" 
+              english="Your information from bank records" 
+              bengali="ব্যাংক রেকর্ড থেকে আপনার তথ্য" 
             />
           </p>
         </div>
+        {isReadOnly && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+            <Lock className="w-3 h-3" />
+            <span>Read-only</span>
+          </div>
+        )}
       </div>
 
-      {/* Form Fields - Mobile optimized with reduced padding */}
+      {/* Form Fields - All read-only when prefilled */}
       <div className="space-y-3">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-foreground">
@@ -56,7 +57,6 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           </Label>
           <Input
             value={formData.fullName}
-            onChange={(e) => handleInputChange("fullName", e.target.value)}
             className="bg-muted/30"
             readOnly
           />
@@ -68,7 +68,6 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           </Label>
           <Input
             value={formData.fatherName}
-            onChange={(e) => handleInputChange("fatherName", e.target.value)}
             className="bg-muted/30"
             readOnly
           />
@@ -80,23 +79,33 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           </Label>
           <Input
             value={formData.motherName}
-            onChange={(e) => handleInputChange("motherName", e.target.value)}
             className="bg-muted/30"
             readOnly
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Date of Birth" bengali="জন্ম তারিখ" />
-          </Label>
-          <Input
-            type="date"
-            value={formData.dateOfBirth}
-            onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-            className="bg-muted/30"
-            readOnly
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">
+              <BilingualText english="Date of Birth" bengali="জন্ম তারিখ" />
+            </Label>
+            <Input
+              value={formData.dateOfBirth}
+              className="bg-muted/30"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">
+              <BilingualText english="Gender" bengali="লিঙ্গ" />
+            </Label>
+            <Input
+              value={formData.gender}
+              className="bg-muted/30"
+              readOnly
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -105,7 +114,6 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           </Label>
           <Input
             value={formData.nidNumber}
-            onChange={(e) => handleInputChange("nidNumber", e.target.value)}
             className="bg-muted/30"
             readOnly
           />
@@ -117,7 +125,6 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           </Label>
           <Input
             value={formData.mobileNumber}
-            onChange={(e) => handleInputChange("mobileNumber", e.target.value)}
             className="bg-muted/30"
             readOnly
           />
@@ -130,7 +137,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           <Input
             type="email"
             value={formData.email}
-            onChange={(e) => handleInputChange("email", e.target.value)}
+            className="bg-muted/30"
+            readOnly
           />
         </div>
 
@@ -140,7 +148,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
           </Label>
           <Input
             value={formData.occupation}
-            onChange={(e) => handleInputChange("occupation", e.target.value)}
+            className="bg-muted/30"
+            readOnly
           />
         </div>
       </div>
@@ -151,8 +160,8 @@ export const PersonalInfoStep = ({ onNext, data }: PersonalInfoStepProps) => {
       <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
         <p className="text-sm text-foreground">
           <BilingualText 
-            english="📝 Note: Most information is pre-filled from your account. You can update email and occupation if needed." 
-            bengali="📝 দ্রষ্টব্য: বেশিরভাগ তথ্য আপনার অ্যাকাউন্ট থেকে পূর্বেই ভরা। প্রয়োজনে আপনি ইমেইল এবং পেশা আপডেট করতে পারেন।" 
+            english="📝 This information is fetched from your bank records and cannot be modified here." 
+            bengali="📝 এই তথ্য আপনার ব্যাংক রেকর্ড থেকে নেওয়া হয়েছে এবং এখানে পরিবর্তন করা যাবে না।" 
           />
         </p>
       </div>
