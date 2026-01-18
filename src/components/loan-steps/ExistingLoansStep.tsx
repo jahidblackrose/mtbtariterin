@@ -34,19 +34,23 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
-        <CreditCard className="w-6 h-6 text-primary" />
-        <div>
-          <h3 className="font-semibold">
-            <BilingualText english="Existing Loan Information" bengali="বিদ্যমান ঋণের তথ্য" />
+      {/* Header Card - Other Bank Liability */}
+      <div className="flex items-start justify-between p-4 bg-card rounded-xl border border-border/50 shadow-sm">
+        <div className="flex-1">
+          <h3 className="font-semibold text-foreground mb-1">
+            <BilingualText english="Other Bank Liability" bengali="অন্য ব্যাংকের দায়" />
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             <BilingualText 
-              english="Review your existing loans with MTB and other banks" 
-              bengali="এমটিবি এবং অন্যান্য ব্যাংকের সাথে আপনার বিদ্যমান ঋণ পর্যালোচনা করুন" 
+              english="Please provide details if you have any loans you have taken from others banks" 
+              bengali="অন্য ব্যাংক থেকে আপনার কোনো ঋণ থাকলে বিস্তারিত প্রদান করুন" 
             />
           </p>
+        </div>
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary ml-4 flex-shrink-0">
+          <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
         </div>
       </div>
 
