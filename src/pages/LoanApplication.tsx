@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
-import { AppHeader, CircularStepIndicator, FixedBottomCTA, StepTransition } from "@/components/pwa";
+import { AppHeader, CircularStepIndicator, FixedBottomCTA } from "@/components/pwa";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PersonalInfoStep } from "@/components/loan-steps/PersonalInfoStep";
 import { AddressStep } from "@/components/loan-steps/AddressStep";
@@ -35,6 +35,7 @@ const LoanApplication = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  
 
   // Submit step data to API
   const submitStepData = useCallback(async (step: number, data: any) => {
@@ -110,27 +111,24 @@ const LoanApplication = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* App Header - Mobile: back only, Desktop: logo + back */}
-      <AppHeader
-        title={{ english: "Loan Application", bengali: "ঋণের আবেদন" }}
-        subtitle={{ 
-          english: `Step ${currentStep} of ${STEPS.length}`, 
-          bengali: `ধাপ ${currentStep} / ${STEPS.length}` 
-        }}
-        onBack={handlePrevious}
-      />
+      {/* Sticky Header with Step Indicator */}
+      <header className="sticky top-0 z-50 bg-background border-b border-border/30">
+        <AppHeader
+          title={{ english: "Loan Application", bengali: "ঋণের আবেদন" }}
+          onBack={handlePrevious}
+        />
+        {/* Compact Circular Step Indicator */}
+        <div className="pb-3">
+          <CircularStepIndicator 
+            steps={STEPS} 
+            currentStep={currentStep}
+          />
+        </div>
+      </header>
 
       {/* Main Content */}
       <main className="flex-1 pb-24">
         <div className="max-w-lg mx-auto px-4 py-4">
-          {/* Circular Step Indicator */}
-          <div className="mb-4">
-            <CircularStepIndicator 
-              steps={STEPS} 
-              currentStep={currentStep}
-              variant={isMobile ? "compact" : "full"}
-            />
-          </div>
 
           {/* Step Content Card */}
           <motion.div
