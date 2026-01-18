@@ -10,9 +10,12 @@ import { BilingualText } from "@/components/BilingualText";
 interface TermsConditionsStepProps {
   onNext: () => void;
   data: any;
+  isReadOnly?: boolean;
+  onSubmit?: () => Promise<void>;
+  isSubmitting?: boolean;
 }
 
-export const TermsConditionsStep = ({ onNext, data }: TermsConditionsStepProps) => {
+export const TermsConditionsStep = ({ onNext, data, isReadOnly, onSubmit, isSubmitting }: TermsConditionsStepProps) => {
   const [agreements, setAgreements] = useState({
     termsAccepted: false,
     creditBureauConsent: false,
@@ -26,9 +29,13 @@ export const TermsConditionsStep = ({ onNext, data }: TermsConditionsStepProps) 
 
   const allAgreementsAccepted = Object.values(agreements).every(Boolean);
 
-  const handleSubmit = () => {
+  const handleFormSubmit = async () => {
     if (allAgreementsAccepted) {
-      onNext();
+      if (onSubmit) {
+        await onSubmit();
+      } else {
+        onNext();
+      }
     }
   };
 
