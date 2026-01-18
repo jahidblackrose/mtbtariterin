@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
-import { AppHeader, CircularStepIndicator, FixedBottomCTA } from "@/components/pwa";
+import { CompactStepHeader, FixedBottomCTA } from "@/components/pwa";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PersonalInfoStep } from "@/components/loan-steps/PersonalInfoStep";
 import { AddressStep } from "@/components/loan-steps/AddressStep";
@@ -18,14 +18,14 @@ import { loanStepService } from "@/services/loanStepApi";
 import { toast } from "@/hooks/use-toast";
 
 const STEPS = [
-  { id: 1, title: "Personal", titleBengali: "ব্যক্তিগত" },
+  { id: 1, title: "Personal Info", titleBengali: "ব্যক্তিগত তথ্য" },
   { id: 2, title: "Address", titleBengali: "ঠিকানা" },
-  { id: 3, title: "Loans", titleBengali: "ঋণ" },
-  { id: 4, title: "Amount", titleBengali: "পরিমাণ" },
+  { id: 3, title: "Other Bank Liability", titleBengali: "অন্যান্য ব্যাংক দায়" },
+  { id: 4, title: "Loan Amount", titleBengali: "ঋণের পরিমাণ" },
   { id: 5, title: "Summary", titleBengali: "সারাংশ" },
-  { id: 6, title: "Face", titleBengali: "মুখ" },
-  { id: 7, title: "Terms", titleBengali: "শর্ত" },
-  { id: 8, title: "Done", titleBengali: "সম্পন্ন" }
+  { id: 6, title: "Face Capture", titleBengali: "মুখ ক্যাপচার" },
+  { id: 7, title: "Terms & Conditions", titleBengali: "শর্তাবলী" },
+  { id: 8, title: "Confirmation", titleBengali: "নিশ্চিতকরণ" }
 ];
 
 const LoanApplication = () => {
@@ -109,22 +109,19 @@ const LoanApplication = () => {
     }
   };
 
+  // Get current step title for header
+  const currentStepTitle = STEPS[currentStep - 1];
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Sticky Header with Step Indicator */}
-      <header className="sticky top-0 z-50 bg-background border-b border-border/30">
-        <AppHeader
-          title={{ english: "Loan Application", bengali: "ঋণের আবেদন" }}
-          onBack={handlePrevious}
-        />
-        {/* Compact Circular Step Indicator */}
-        <div className="pb-3">
-          <CircularStepIndicator 
-            steps={STEPS} 
-            currentStep={currentStep}
-          />
-        </div>
-      </header>
+      {/* Compact Header with Circular Progress */}
+      <CompactStepHeader
+        title={{ english: currentStepTitle.title, bengali: currentStepTitle.titleBengali }}
+        currentStep={currentStep}
+        totalSteps={STEPS.length}
+        onBack={handlePrevious}
+        onClose={() => navigate("/dashboard")}
+      />
 
       {/* Main Content */}
       <main className="flex-1 pb-24">
