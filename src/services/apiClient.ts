@@ -1,6 +1,6 @@
 /**
- * Secure API Client with Token Management
- * Handles x-api-key generation, refresh, and secure request handling
+ * API Client with Session Management
+ * Handles secure request handling and session context
  */
 
 // API Configuration - uses environment variable, no hardcoded URLs
@@ -12,11 +12,6 @@ const getBaseUrl = (): string => {
   }
   return baseUrl;
 };
-
-// Token storage in memory only (never in localStorage/UI/logs)
-let apiKey: string | null = null;
-let tokenExpiresAt: number | null = null;
-const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh 5 minutes before expiry
 
 // Session storage for application context (in-memory only)
 interface SessionContext {
@@ -55,83 +50,10 @@ export interface ApiError {
   code?: string;
 }
 
-// Token Response Type
-interface TokenResponse {
-  status: string;
-  message: string;
-  token?: string;
-  expiresIn?: number;
-}
-
 /**
- * Generate/fetch x-api-key from the token endpoint
- * Called automatically before any API request if token is missing/expired
+ * Clear session data (for logout/session end)
  */
-async function fetchApiToken(): Promise<string> {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new Error('API base URL not configured');
-  }
-
-  try {
-    const response = await fetch(`${baseUrl}/ekyc/api/v1/Registration/gettoken`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Token fetch failed with status: ${response.status}`);
-    }
-
-    const data: TokenResponse = await response.json();
-    
-    if (data.status !== '200' || !data.token) {
-      throw new Error(data.message || 'Failed to obtain API token');
-    }
-
-    // Store token in memory only
-    apiKey = data.token;
-    
-    // Set expiration (default 1 hour if not specified)
-    const expiresIn = data.expiresIn || 3600;
-    tokenExpiresAt = Date.now() + (expiresIn * 1000);
-
-    return apiKey;
-  } catch (error: any) {
-    // Clear any stale token
-    apiKey = null;
-    tokenExpiresAt = null;
-    throw new Error(`Token generation failed: ${error.message}`);
-  }
-}
-
-/**
- * Check if token needs refresh
- */
-function isTokenExpired(): boolean {
-  if (!apiKey || !tokenExpiresAt) return true;
-  return Date.now() >= tokenExpiresAt - TOKEN_REFRESH_BUFFER_MS;
-}
-
-/**
- * Ensure we have a valid API token
- */
-async function ensureValidToken(): Promise<string> {
-  if (isTokenExpired()) {
-    return await fetchApiToken();
-  }
-  return apiKey!;
-}
-
-/**
- * Clear all tokens (for logout/session end)
- */
-export function clearTokens(): void {
-  apiKey = null;
-  tokenExpiresAt = null;
+export function clearSession(): void {
   sessionContext = {
     applicationId: null,
     customerId: null,
@@ -159,7 +81,7 @@ export function updateSessionContext(updates: Partial<SessionContext>): void {
 }
 
 /**
- * Main HTTP request function with automatic token management
+ * Main HTTP request function
  */
 export async function apiRequest<T = any>(
   endpoint: string,
@@ -167,10 +89,9 @@ export async function apiRequest<T = any>(
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
     body?: Record<string, any>;
     headers?: Record<string, string>;
-    skipAuth?: boolean;
   } = {}
 ): Promise<ApiResponse<T>> {
-  const { method = 'POST', body, headers = {}, skipAuth = false } = options;
+  const { method = 'POST', body, headers = {} } = options;
   const baseUrl = getBaseUrl();
   
   if (!baseUrl) {
@@ -181,22 +102,11 @@ export async function apiRequest<T = any>(
   }
 
   try {
-    // Get valid token unless explicitly skipped
-    let token: string | undefined;
-    if (!skipAuth) {
-      token = await ensureValidToken();
-    }
-
-    // Build secure headers
+    // Build headers
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...headers,
     };
-
-    // Add API key header securely
-    if (token) {
-      requestHeaders['x-api-key'] = token;
-    }
 
     // Make the request
     const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -207,29 +117,8 @@ export async function apiRequest<T = any>(
 
     // Parse response
     const data = await response.json();
-
-    // Check for token expiration errors and retry
-    if (data.status === '401' || data.message?.toLowerCase().includes('token expired')) {
-      // Force token refresh
-      apiKey = null;
-      tokenExpiresAt = null;
-      
-      // Retry once with new token
-      const newToken = await fetchApiToken();
-      requestHeaders['x-api-key'] = newToken;
-      
-      const retryResponse = await fetch(`${baseUrl}${endpoint}`, {
-        method,
-        headers: requestHeaders,
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      
-      return await retryResponse.json();
-    }
-
     return data;
   } catch (error: any) {
-    // Never log sensitive data
     return {
       status: '500',
       message: error.message || 'Network error occurred',
@@ -253,7 +142,7 @@ export function isApiConfigured(): boolean {
 
 export default {
   apiRequest,
-  clearTokens,
+  clearSession,
   getSessionContext,
   updateSessionContext,
   isSuccessResponse,
