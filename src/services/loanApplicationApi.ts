@@ -304,6 +304,32 @@ export interface SubmitApplicationResponse {
   actitle?: string;
 }
 
+// Opened Loan Account Data Types
+export interface GetOpenedLoanAccountRequest {
+  loginid: string;
+  cif: string;
+  mobilenumber: string;
+  apicode?: string;
+  modulename?: string;
+}
+
+export interface OpenedLoanAccount {
+  loanacno: string;
+  productname: string;
+  accountstatus: string;
+  loanamount: string;
+  outstanding: string;
+  paidinstallments: string;
+  remaininginstallments: string;
+}
+
+export interface GetOpenedLoanAccountResponse {
+  status: string;
+  message: string;
+  newaccountopen: number;
+  dataList: OpenedLoanAccount[];
+}
+
 // Master Data Types
 export interface DistrictData {
   districtcode: string;
@@ -556,6 +582,24 @@ export const loanApplicationApi = {
     return apiRequest('/loanapplication/api/v1/Application/applynewloan', {
       body: data,
     });
+  },
+
+  /**
+   * Get Opened Loan Account Data - For users with existing loans (status -666)
+   */
+  async getOpenedLoanAccountData(data: GetOpenedLoanAccountRequest): Promise<ApiResponse<GetOpenedLoanAccountResponse>> {
+    return apiRequest<GetOpenedLoanAccountResponse>(
+      '/loanapplication/api/v1/Application/getopenedloanaccountdata',
+      {
+        body: {
+          loginid: data.loginid,
+          cif: data.cif,
+          mobilenumber: data.mobilenumber,
+          apicode: data.apicode || '',
+          modulename: data.modulename || '',
+        },
+      }
+    );
   },
 
   /**
