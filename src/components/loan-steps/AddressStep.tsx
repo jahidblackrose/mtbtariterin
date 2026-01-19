@@ -19,6 +19,11 @@ interface AddressStepProps {
   isReadOnly?: boolean;
 }
 
+interface PostOfficeData {
+  postcode: string;
+  postofficename: string;
+}
+
 interface AddressSectionData {
   addressLine1: string;
   addressLine2: string;
@@ -28,6 +33,7 @@ interface AddressSectionData {
   thana: string;
   thanaName: string;
   postCode: string;
+  postOfficeName: string;
 }
 
 const defaultAddressSection: AddressSectionData = {
@@ -39,6 +45,7 @@ const defaultAddressSection: AddressSectionData = {
   thana: "",
   thanaName: "",
   postCode: "",
+  postOfficeName: "",
 };
 
 export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProps) => {
@@ -54,12 +61,18 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
   const [presentThanas, setPresentThanas] = useState<ThanaData[]>([]);
   const [permanentThanas, setPermanentThanas] = useState<ThanaData[]>([]);
   const [professionalThanas, setProfessionalThanas] = useState<ThanaData[]>([]);
+  const [presentPostOffices, setPresentPostOffices] = useState<PostOfficeData[]>([]);
+  const [permanentPostOffices, setPermanentPostOffices] = useState<PostOfficeData[]>([]);
+  const [professionalPostOffices, setProfessionalPostOffices] = useState<PostOfficeData[]>([]);
 
   // Loading states
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingPresentThana, setLoadingPresentThana] = useState(false);
   const [loadingPermanentThana, setLoadingPermanentThana] = useState(false);
   const [loadingProfessionalThana, setLoadingProfessionalThana] = useState(false);
+  const [loadingPresentPostOffice, setLoadingPresentPostOffice] = useState(false);
+  const [loadingPermanentPostOffice, setLoadingPermanentPostOffice] = useState(false);
+  const [loadingProfessionalPostOffice, setLoadingProfessionalPostOffice] = useState(false);
 
   // Load districts on mount (only if not read-only)
   useEffect(() => {
@@ -111,6 +124,36 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     }
   };
 
+  // Load post offices when thana changes for each section
+  const loadPostOffices = async (
+    districtCode: string,
+    thanaCode: string,
+    section: 'present' | 'permanent' | 'professional'
+  ) => {
+    if (isReadOnly) return;
+    
+    const setLoading = section === 'present' ? setLoadingPresentPostOffice
+      : section === 'permanent' ? setLoadingPermanentPostOffice
+      : setLoadingProfessionalPostOffice;
+    
+    const setPostOffices = section === 'present' ? setPresentPostOffices
+      : section === 'permanent' ? setPermanentPostOffices
+      : setProfessionalPostOffices;
+
+    setLoading(true);
+    try {
+      const response = await loanApplicationApi.getPostOfficeList(districtCode, thanaCode);
+      if (response.status === "S" && response.dataList) {
+        setPostOffices(response.dataList);
+      }
+    } catch (error) {
+      console.error(`Failed to load post offices for ${section}:`, error);
+      toast.error("Failed to load post office list");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddressChange = (
     section: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
     field: keyof AddressSectionData,
@@ -140,11 +183,25 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
         district: districtCode,
         districtName: selectedDistrict?.districtname || "",
         thana: "",
-        thanaName: ""
+        thanaName: "",
+        postCode: "",
+        postOfficeName: ""
       }
     }));
 
+    // Clear thanas and post offices for this section
     const sectionKey = section.replace('Address', '') as 'present' | 'permanent' | 'professional';
+    if (sectionKey === 'present') {
+      setPresentThanas([]);
+      setPresentPostOffices([]);
+    } else if (sectionKey === 'permanent') {
+      setPermanentThanas([]);
+      setPermanentPostOffices([]);
+    } else {
+      setProfessionalThanas([]);
+      setProfessionalPostOffices([]);
+    }
+    
     loadThanas(districtCode, sectionKey);
   };
 
@@ -153,6 +210,8 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     thanaCode: string
   ) => {
     if (isReadOnly) return;
+    const sectionKey = section.replace('Address', '') as 'present' | 'permanent' | 'professional';
+    
     const thanas = section === 'presentAddress' ? presentThanas
       : section === 'permanentAddress' ? permanentThanas
       : professionalThanas;
@@ -164,7 +223,42 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
       [section]: {
         ...prev[section],
         thana: thanaCode,
-        thanaName: selectedThana?.thananame || ""
+        thanaName: selectedThana?.thananame || "",
+        postCode: "",
+        postOfficeName: ""
+      }
+    }));
+
+    // Clear post offices for this section
+    if (sectionKey === 'present') {
+      setPresentPostOffices([]);
+    } else if (sectionKey === 'permanent') {
+      setPermanentPostOffices([]);
+    } else {
+      setProfessionalPostOffices([]);
+    }
+
+    const districtCode = formData[section].district;
+    loadPostOffices(districtCode, thanaCode, sectionKey);
+  };
+
+  const handlePostCodeChange = (
+    section: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
+    postCode: string
+  ) => {
+    if (isReadOnly) return;
+    const postOffices = section === 'presentAddress' ? presentPostOffices
+      : section === 'permanentAddress' ? permanentPostOffices
+      : professionalPostOffices;
+    
+    const selectedPostOffice = postOffices.find(p => p.postcode === postCode);
+    
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        postCode: postCode,
+        postOfficeName: selectedPostOffice?.postofficename || ""
       }
     }));
   };
@@ -173,12 +267,14 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     title: { english: string; bengali: string },
     sectionKey: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
     thanas: ThanaData[],
-    loadingThana: boolean
+    loadingThana: boolean,
+    postOffices: PostOfficeData[],
+    loadingPostOffice: boolean
   ) => {
     const sectionData = formData[sectionKey];
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Section Header */}
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-t-lg font-semibold flex items-center justify-between">
           <BilingualText english={title.english} bengali={title.bengali} />
@@ -191,38 +287,40 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
         </div>
         
         <div className="bg-secondary/20 p-4 rounded-b-lg space-y-4">
-          {/* Row 1: Address Line 1, Address Line 2, Country */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">
-                Address Line 1
-                <span className="text-muted-foreground text-xs ml-1">(160 Characters)</span>
-              </Label>
-              <Input
-                value={sectionData.addressLine1}
-                onChange={(e) => handleAddressChange(sectionKey, "addressLine1", e.target.value.slice(0, 160))}
-                placeholder={isReadOnly ? "-" : "House/Flat, Road, Area"}
-                maxLength={160}
-                className="bg-secondary/30 border-secondary"
-                readOnly={isReadOnly}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">
-                Address Line 2
-                <span className="text-muted-foreground text-xs ml-1">(60 Characters)</span>
-              </Label>
-              <Input
-                value={sectionData.addressLine2}
-                onChange={(e) => handleAddressChange(sectionKey, "addressLine2", e.target.value.slice(0, 60))}
-                placeholder={isReadOnly ? "-" : "Additional address details"}
-                maxLength={60}
-                className="bg-secondary/30 border-secondary"
-                readOnly={isReadOnly}
-              />
-            </div>
-            
+          {/* Row 1: Address Line 1 - Full Width */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">
+              Address Line 1
+              <span className="text-muted-foreground text-xs ml-1">(160 Characters)</span>
+            </Label>
+            <Input
+              value={sectionData.addressLine1}
+              onChange={(e) => handleAddressChange(sectionKey, "addressLine1", e.target.value.slice(0, 160))}
+              placeholder={isReadOnly ? "-" : "House/Flat, Road, Area"}
+              maxLength={160}
+              className="bg-secondary/30 border-secondary"
+              readOnly={isReadOnly}
+            />
+          </div>
+          
+          {/* Row 2: Address Line 2 - Full Width */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium">
+              Address Line 2
+              <span className="text-muted-foreground text-xs ml-1">(60 Characters)</span>
+            </Label>
+            <Input
+              value={sectionData.addressLine2}
+              onChange={(e) => handleAddressChange(sectionKey, "addressLine2", e.target.value.slice(0, 60))}
+              placeholder={isReadOnly ? "-" : "Additional address details"}
+              maxLength={60}
+              className="bg-secondary/30 border-secondary"
+              readOnly={isReadOnly}
+            />
+          </div>
+
+          {/* Row 3: Country (Half) + District (Half) */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-medium">Country</Label>
               <Input
@@ -231,10 +329,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
                 readOnly
               />
             </div>
-          </div>
-
-          {/* Row 2: District, Thana, Post Code */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
             <div className="space-y-2">
               <Label className="text-xs font-medium">District</Label>
               {isReadOnly ? (
@@ -268,7 +363,10 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
                 </Select>
               )}
             </div>
-            
+          </div>
+
+          {/* Row 4: Thana (Half) + Post Code (Half) */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-medium">Thana</Label>
               {isReadOnly ? (
@@ -306,13 +404,37 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
             
             <div className="space-y-2">
               <Label className="text-xs font-medium">Post Code</Label>
-              <Input
-                value={sectionData.postCode}
-                onChange={(e) => handleAddressChange(sectionKey, "postCode", e.target.value)}
-                placeholder={isReadOnly ? "-" : "e.g., 1205"}
-                className="bg-secondary/30 border-secondary"
-                readOnly={isReadOnly}
-              />
+              {isReadOnly ? (
+                <Input
+                  value={sectionData.postCode || "-"}
+                  className="bg-secondary/30 border-secondary"
+                  readOnly
+                />
+              ) : (
+                <Select
+                  value={sectionData.postCode}
+                  onValueChange={(value) => handlePostCodeChange(sectionKey, value)}
+                  disabled={!sectionData.thana}
+                >
+                  <SelectTrigger className="bg-secondary/30 border-secondary">
+                    {loadingPostOffice ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      <SelectValue placeholder={sectionData.thana ? "-- Select Post Code --" : "Select Thana first"} />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className="bg-card z-50">
+                    {postOffices.map((po) => (
+                      <SelectItem key={po.postcode} value={po.postcode}>
+                        {po.postcode} - {po.postofficename}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </div>
@@ -350,7 +472,9 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
         { english: "Present Address", bengali: "বর্তমান ঠিকানা" },
         'presentAddress',
         presentThanas,
-        loadingPresentThana
+        loadingPresentThana,
+        presentPostOffices,
+        loadingPresentPostOffice
       )}
 
       {/* Permanent Address Section */}
@@ -358,7 +482,9 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
         { english: "Permanent Address", bengali: "স্থায়ী ঠিকানা" },
         'permanentAddress',
         permanentThanas,
-        loadingPermanentThana
+        loadingPermanentThana,
+        permanentPostOffices,
+        loadingPermanentPostOffice
       )}
 
       {/* Professional Address Section */}
@@ -366,7 +492,9 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
         { english: "Professional Address", bengali: "পেশাদার ঠিকানা" },
         'professionalAddress',
         professionalThanas,
-        loadingProfessionalThana
+        loadingProfessionalThana,
+        professionalPostOffices,
+        loadingProfessionalPostOffice
       )}
 
       {/* Preferred Communication Address */}
