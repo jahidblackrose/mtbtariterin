@@ -13,6 +13,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { loanApplicationApi, DistrictData, ThanaData } from "@/services/loanApplicationApi";
 import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
+import { useApplicationData } from "@/contexts/ApplicationDataContext";
 import { toast } from "sonner";
 
 interface AddressStepProps {
@@ -51,12 +52,57 @@ const defaultAddressSection: AddressSectionData = {
 };
 
 export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProps) => {
-  const [formData, setFormData] = useState({
-    presentAddress: { ...defaultAddressSection, ...data.presentAddress },
-    permanentAddress: { ...defaultAddressSection, ...data.permanentAddress },
-    professionalAddress: { ...defaultAddressSection, ...data.professionalAddress },
-    communicationAddress: data.communicationAddress || "present"
-  });
+  const { applicationData } = useApplicationData();
+  const contactData = applicationData.contactData;
+
+  // Initialize form data from context or props
+  const getInitialFormData = () => {
+    // Map from API contactData to form structure
+    const presentAddress: AddressSectionData = {
+      addressLine1: contactData?.presentaddr1 || data.presentAddress?.addressLine1 || "",
+      addressLine2: contactData?.presentaddr2 || data.presentAddress?.addressLine2 || "",
+      country: contactData?.presentcountry || data.presentAddress?.country || "Bangladesh",
+      district: contactData?.presentdistrict || data.presentAddress?.district || "",
+      districtName: contactData?.presentdistrictname || data.presentAddress?.districtName || "",
+      thana: contactData?.presentthana || data.presentAddress?.thana || "",
+      thanaName: contactData?.presentthananame || data.presentAddress?.thanaName || "",
+      postCode: contactData?.presentpostcode || data.presentAddress?.postCode || "",
+      postOfficeName: data.presentAddress?.postOfficeName || "",
+    };
+
+    const permanentAddress: AddressSectionData = {
+      addressLine1: contactData?.permanentaddr1 || data.permanentAddress?.addressLine1 || "",
+      addressLine2: contactData?.permanentaddr2 || data.permanentAddress?.addressLine2 || "",
+      country: contactData?.permanentcountry || data.permanentAddress?.country || "Bangladesh",
+      district: contactData?.permanentdistrict || data.permanentAddress?.district || "",
+      districtName: contactData?.permanentdistrictname || data.permanentAddress?.districtName || "",
+      thana: contactData?.permanentthana || data.permanentAddress?.thana || "",
+      thanaName: contactData?.permanentthananame || data.permanentAddress?.thanaName || "",
+      postCode: contactData?.permanentpostcode || data.permanentAddress?.postCode || "",
+      postOfficeName: data.permanentAddress?.postOfficeName || "",
+    };
+
+    const professionalAddress: AddressSectionData = {
+      addressLine1: contactData?.professionaddr1 || data.professionalAddress?.addressLine1 || "",
+      addressLine2: contactData?.professionaddr2 || data.professionalAddress?.addressLine2 || "",
+      country: contactData?.professioncountry || data.professionalAddress?.country || "Bangladesh",
+      district: contactData?.professiondistrict || data.professionalAddress?.district || "",
+      districtName: contactData?.professiondistrictname || data.professionalAddress?.districtName || "",
+      thana: contactData?.professionthana || data.professionalAddress?.thana || "",
+      thanaName: contactData?.professionthananame || data.professionalAddress?.thanaName || "",
+      postCode: contactData?.professionpostcode || data.professionalAddress?.postCode || "",
+      postOfficeName: data.professionalAddress?.postOfficeName || "",
+    };
+
+    return {
+      presentAddress,
+      permanentAddress,
+      professionalAddress,
+      communicationAddress: contactData?.preferredcommunication || data.communicationAddress || "present",
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData);
 
   // Master data state
   const [districts, setDistricts] = useState<DistrictData[]>([]);
@@ -76,35 +122,13 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
   const [loadingPermanentPostOffice, setLoadingPermanentPostOffice] = useState(false);
   const [loadingProfessionalPostOffice, setLoadingProfessionalPostOffice] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Load districts on mount (only if not read-only)
-  useEffect(() => {
-    if (isReadOnly) return;
-    
-    const loadDistricts = async () => {
-      setLoadingDistricts(true);
-      try {
-        const response = await loanApplicationApi.getDistrictList();
-        if (isSuccessResponse(response) && response.dataList) {
-          setDistricts(response.dataList);
-        }
-      } catch (error) {
-        console.error("Failed to load districts:", error);
-        toast.error("Failed to load district list");
-      } finally {
-        setLoadingDistricts(false);
-      }
-    };
-    loadDistricts();
-  }, [isReadOnly]);
-
-  // Load thanas when district changes for each section
-  const loadThanas = useCallback(async (
+  // Load thanas for a section
+  const loadThanasForSection = useCallback(async (
     districtCode: string,
     section: 'present' | 'permanent' | 'professional'
-  ) => {
-    if (isReadOnly) return;
-    
+  ): Promise<ThanaData[]> => {
     const setLoading = section === 'present' ? setLoadingPresentThana
       : section === 'permanent' ? setLoadingPermanentThana
       : setLoadingProfessionalThana;
@@ -118,14 +142,100 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
       const response = await loanApplicationApi.getThanaList(districtCode);
       if (isSuccessResponse(response) && response.dataList) {
         setThanas(response.dataList);
+        return response.dataList;
       }
     } catch (error) {
       console.error(`Failed to load thanas for ${section}:`, error);
-      toast.error("Failed to load thana list");
     } finally {
       setLoading(false);
     }
-  }, [isReadOnly]);
+    return [];
+  }, []);
+
+  // Load districts on mount and preselect from fetchalldata
+  useEffect(() => {
+    const loadDistrictsAndPreselect = async () => {
+      setLoadingDistricts(true);
+      try {
+        const response = await loanApplicationApi.getDistrictList();
+        if (isSuccessResponse(response) && response.dataList) {
+          setDistricts(response.dataList);
+          
+          // After districts are loaded, preselect and load thanas for each section
+          const initialFormData = getInitialFormData();
+          
+          // Load thanas for present address if district is set
+          if (initialFormData.presentAddress.district) {
+            const thanas = await loadThanasForSection(initialFormData.presentAddress.district, 'present');
+            // Verify thana exists in the loaded list
+            if (initialFormData.presentAddress.thana && thanas.length > 0) {
+              const matchingThana = thanas.find(t => t.thanacode === initialFormData.presentAddress.thana);
+              if (matchingThana) {
+                setFormData(prev => ({
+                  ...prev,
+                  presentAddress: {
+                    ...prev.presentAddress,
+                    thanaName: matchingThana.thananame,
+                  }
+                }));
+              }
+            }
+          }
+
+          // Load thanas for permanent address if district is set
+          if (initialFormData.permanentAddress.district) {
+            const thanas = await loadThanasForSection(initialFormData.permanentAddress.district, 'permanent');
+            if (initialFormData.permanentAddress.thana && thanas.length > 0) {
+              const matchingThana = thanas.find(t => t.thanacode === initialFormData.permanentAddress.thana);
+              if (matchingThana) {
+                setFormData(prev => ({
+                  ...prev,
+                  permanentAddress: {
+                    ...prev.permanentAddress,
+                    thanaName: matchingThana.thananame,
+                  }
+                }));
+              }
+            }
+          }
+
+          // Load thanas for professional address if district is set
+          if (initialFormData.professionalAddress.district) {
+            const thanas = await loadThanasForSection(initialFormData.professionalAddress.district, 'professional');
+            if (initialFormData.professionalAddress.thana && thanas.length > 0) {
+              const matchingThana = thanas.find(t => t.thanacode === initialFormData.professionalAddress.thana);
+              if (matchingThana) {
+                setFormData(prev => ({
+                  ...prev,
+                  professionalAddress: {
+                    ...prev.professionalAddress,
+                    thanaName: matchingThana.thananame,
+                  }
+                }));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load districts:", error);
+        toast.error("Failed to load district list");
+      } finally {
+        setLoadingDistricts(false);
+        setInitialLoadComplete(true);
+      }
+    };
+
+    loadDistrictsAndPreselect();
+  }, []);
+
+  // Load thanas when district changes for each section (user interaction)
+  const loadThanas = useCallback(async (
+    districtCode: string,
+    section: 'present' | 'permanent' | 'professional'
+  ) => {
+    if (isReadOnly) return;
+    await loadThanasForSection(districtCode, section);
+  }, [isReadOnly, loadThanasForSection]);
 
   // Load post offices when thana changes for each section
   const loadPostOffices = useCallback(async (
@@ -341,6 +451,13 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     }));
   };
 
+  // Get display name for district
+  const getDistrictDisplayName = (districtCode: string, districtName: string) => {
+    if (districtName) return districtName;
+    const district = districts.find(d => d.districtcode === districtCode);
+    return district?.districtname || districtCode;
+  };
+
   const renderAddressSection = (
     title: { english: string; bengali: string },
     sectionKey: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
@@ -412,7 +529,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
               <Label className="text-xs font-medium">District</Label>
               {isReadOnly ? (
                 <Input
-                  value={sectionData.districtName || sectionData.district || "-"}
+                  value={getDistrictDisplayName(sectionData.district, sectionData.districtName)}
                   className="bg-secondary/30 border-secondary"
                   readOnly
                 />
@@ -431,7 +548,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
                       <SelectValue placeholder="-- Select District --" />
                     )}
                   </SelectTrigger>
-                  <SelectContent className="bg-card z-50">
+                  <SelectContent className="bg-card z-50 max-h-60">
                     {districts.map((district) => (
                       <SelectItem key={district.districtcode} value={district.districtcode}>
                         {district.districtname}
@@ -469,7 +586,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
                       <SelectValue placeholder={sectionData.district ? "-- Select Thana --" : "Select District first"} />
                     )}
                   </SelectTrigger>
-                  <SelectContent className="bg-card z-50">
+                  <SelectContent className="bg-card z-50 max-h-60">
                     {thanas.map((thana) => (
                       <SelectItem key={thana.thanacode} value={thana.thanacode}>
                         {thana.thananame}
@@ -504,7 +621,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
                       <SelectValue placeholder={sectionData.thana ? "-- Select Post Code --" : "Select Thana first"} />
                     )}
                   </SelectTrigger>
-                  <SelectContent className="bg-card z-50">
+                  <SelectContent className="bg-card z-50 max-h-60">
                     {postOffices.map((po) => (
                       <SelectItem key={po.postcode} value={po.postcode}>
                         {po.postcode} - {po.postofficename}
@@ -544,6 +661,14 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
           </p>
         </div>
       </div>
+
+      {/* Loading indicator for initial data */}
+      {!initialLoadComplete && loadingDistricts && (
+        <div className="flex items-center justify-center gap-2 p-3 bg-muted/30 rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Loading address data...</span>
+        </div>
+      )}
 
       {/* Present Address Section */}
       {renderAddressSection(

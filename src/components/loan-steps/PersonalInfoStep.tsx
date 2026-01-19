@@ -1,8 +1,20 @@
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User, Lock } from "lucide-react";
+import { User, Lock, Loader2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { loanApplicationApi, DistrictData } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
+import { useApplicationData } from "@/contexts/ApplicationDataContext";
+import { toast } from "sonner";
 
 interface PersonalInfoStepProps {
   onNext: (data: any) => void;
@@ -10,20 +22,190 @@ interface PersonalInfoStepProps {
   isReadOnly?: boolean;
 }
 
+// Marital status options (static list)
+const MARITAL_STATUS_OPTIONS = [
+  { value: "Single", label: "Single" },
+  { value: "Married", label: "Married" },
+  { value: "Divorced", label: "Divorced" },
+  { value: "Widowed", label: "Widowed" },
+];
+
 export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalInfoStepProps) => {
-  // All fields are read-only when data is prefilled from API
-  const formData = {
-    fullName: data.fullName || "",
-    fatherName: data.fatherName || "",
-    motherName: data.motherName || "",
-    dateOfBirth: data.dateOfBirth || "",
-    nidNumber: data.nidNumber || "",
-    mobileNumber: data.mobileNumber || "",
-    email: data.email || "",
-    occupation: data.occupation || "",
-    gender: data.gender || "",
-    maritalStatus: data.maritalStatus || "",
+  const { applicationData } = useApplicationData();
+  const personalData = applicationData.personalData;
+
+  // Form state for editable fields
+  const [formData, setFormData] = useState({
+    maritalStatus: personalData?.maritalstatus || data.maritalStatus || "",
+    tinNumber: personalData?.tinnumber || data.tinNumber || "",
+    emergencyContactName: personalData?.emergencycontactname || data.emergencyContactName || "",
+    emergencyContactNumber: personalData?.emergencycontactnumber || data.emergencyContactNumber || "",
+    districtOfBirthCode: personalData?.distofbirthcode || data.districtOfBirthCode || "",
+    districtOfBirthName: personalData?.distofbirthname || data.districtOfBirthName || "",
+  });
+
+  // District list for dropdown
+  const [districts, setDistricts] = useState<DistrictData[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [emergencyNumberError, setEmergencyNumberError] = useState("");
+
+  // Read-only field values from API (fetchalldata)
+  const readOnlyData = {
+    fullName: personalData?.fullname || data.fullName || "",
+    fatherName: personalData?.fathername || data.fatherName || "",
+    motherName: personalData?.mothername || data.motherName || "",
+    dateOfBirth: personalData?.dob || data.dateOfBirth || "",
+    nidNumber: personalData?.nidnumber || data.nidNumber || "",
+    mobileNumber: personalData?.mobilenumber || data.mobileNumber || "",
+    email: personalData?.email || data.email || "",
+    gender: personalData?.gender || data.gender || "",
+    countryOfBirth: "Bangladesh", // Fixed text
+    countryOfResidence: personalData?.countryofresidence || data.countryOfResidence || "Bangladesh",
   };
+
+  // Load districts on mount for the District of Birth dropdown
+  useEffect(() => {
+    const loadDistricts = async () => {
+      setLoadingDistricts(true);
+      try {
+        const response = await loanApplicationApi.getDistrictList();
+        if (isSuccessResponse(response) && response.dataList) {
+          setDistricts(response.dataList);
+          
+          // Auto-select district if distofbirthcode exists in personalData
+          if (personalData?.distofbirthcode) {
+            const matchingDistrict = response.dataList.find(
+              (d: DistrictData) => d.districtcode === personalData.distofbirthcode
+            );
+            if (matchingDistrict) {
+              setFormData(prev => ({
+                ...prev,
+                districtOfBirthCode: matchingDistrict.districtcode,
+                districtOfBirthName: matchingDistrict.districtname,
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load districts:", error);
+        toast.error("Failed to load district list");
+      } finally {
+        setLoadingDistricts(false);
+      }
+    };
+    loadDistricts();
+  }, [personalData?.distofbirthcode]);
+
+  // Validate emergency contact number
+  const validateEmergencyNumber = (value: string): boolean => {
+    if (!value) {
+      setEmergencyNumberError("");
+      return true;
+    }
+    if (value.length !== 11) {
+      setEmergencyNumberError("Must be 11 digits");
+      return false;
+    }
+    if (!value.startsWith("01")) {
+      setEmergencyNumberError("Must start with 01");
+      return false;
+    }
+    setEmergencyNumberError("");
+    return true;
+  };
+
+  const handleEmergencyNumberChange = (value: string) => {
+    // Only allow digits
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 11);
+    setFormData(prev => ({ ...prev, emergencyContactNumber: digitsOnly }));
+    validateEmergencyNumber(digitsOnly);
+  };
+
+  const handleDistrictChange = (districtCode: string) => {
+    const selectedDistrict = districts.find(d => d.districtcode === districtCode);
+    setFormData(prev => ({
+      ...prev,
+      districtOfBirthCode: districtCode,
+      districtOfBirthName: selectedDistrict?.districtname || "",
+    }));
+  };
+
+  // Save personal data via API
+  const savePersonalData = useCallback(async () => {
+    if (isReadOnly) return true;
+    
+    // Validate emergency number before saving
+    if (formData.emergencyContactNumber && !validateEmergencyNumber(formData.emergencyContactNumber)) {
+      toast.error("Please enter a valid emergency contact number");
+      return false;
+    }
+
+    setIsSaving(true);
+    try {
+      const session = getSessionContext();
+      
+      const payload = {
+        applicationid: session.applicationId || "",
+        cif: session.customerId || "",
+        casacno: session.accountNumber || "",
+        fullname: readOnlyData.fullName,
+        mothername: readOnlyData.motherName,
+        fathername: readOnlyData.fatherName,
+        dob: readOnlyData.dateOfBirth,
+        maritialstatus: formData.maritalStatus,
+        gender: readOnlyData.gender,
+        profession: personalData?.profession || "",
+        tinno: formData.tinNumber,
+        idtype: "NID",
+        idno: readOnlyData.nidNumber,
+        countryofbirth: readOnlyData.countryOfBirth,
+        countryofresidence: readOnlyData.countryOfResidence,
+        mobilenumber: readOnlyData.mobileNumber,
+        email: readOnlyData.email,
+        emergencycontactname: formData.emergencyContactName,
+        emergencycontactnumber: formData.emergencyContactNumber,
+        distofbirthcode: formData.districtOfBirthCode,
+        distofbirthname: formData.districtOfBirthName,
+      };
+
+      const response = await loanApplicationApi.savePersonalData(payload);
+      
+      if (isSuccessResponse(response)) {
+        toast.success("Personal information saved successfully");
+        return true;
+      } else {
+        throw new Error(response.message || "Failed to save personal data");
+      }
+    } catch (error: any) {
+      console.error("Failed to save personal data:", error);
+      toast.error(error.message || "Failed to save personal information");
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isReadOnly, formData, readOnlyData, personalData]);
+
+  // Handle next - save before proceeding
+  const handleNext = useCallback(async () => {
+    if (isReadOnly) {
+      onNext({ ...readOnlyData, ...formData });
+      return;
+    }
+    
+    const saved = await savePersonalData();
+    if (saved) {
+      onNext({ ...readOnlyData, ...formData });
+    }
+  }, [isReadOnly, formData, readOnlyData, onNext, savePersonalData]);
+
+  // Expose handleNext for parent component
+  useEffect(() => {
+    (window as any).__personalInfoStepSave = handleNext;
+    return () => {
+      delete (window as any).__personalInfoStepSave;
+    };
+  }, [handleNext]);
 
   return (
     <div className="space-y-4">
@@ -49,14 +231,14 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
         )}
       </div>
 
-      {/* Form Fields - All read-only when prefilled */}
+      {/* Read-Only Fields Section */}
       <div className="space-y-3">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Full Name" bengali="পূর্ণ নাম" />
+            <BilingualText english="Customer's Name" bengali="গ্রাহকের নাম" />
           </Label>
           <Input
-            value={formData.fullName}
+            value={readOnlyData.fullName}
             className="bg-muted/30"
             readOnly
           />
@@ -67,7 +249,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
             <BilingualText english="Father's Name" bengali="পিতার নাম" />
           </Label>
           <Input
-            value={formData.fatherName}
+            value={readOnlyData.fatherName}
             className="bg-muted/30"
             readOnly
           />
@@ -78,7 +260,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
             <BilingualText english="Mother's Name" bengali="মাতার নাম" />
           </Label>
           <Input
-            value={formData.motherName}
+            value={readOnlyData.motherName}
             className="bg-muted/30"
             readOnly
           />
@@ -90,7 +272,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
               <BilingualText english="Date of Birth" bengali="জন্ম তারিখ" />
             </Label>
             <Input
-              value={formData.dateOfBirth}
+              value={readOnlyData.dateOfBirth}
               className="bg-muted/30"
               readOnly
             />
@@ -101,7 +283,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
               <BilingualText english="Gender" bengali="লিঙ্গ" />
             </Label>
             <Input
-              value={formData.gender}
+              value={readOnlyData.gender}
               className="bg-muted/30"
               readOnly
             />
@@ -113,7 +295,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
             <BilingualText english="NID Number" bengali="এনআইডি নম্বর" />
           </Label>
           <Input
-            value={formData.nidNumber}
+            value={readOnlyData.nidNumber}
             className="bg-muted/30"
             readOnly
           />
@@ -124,7 +306,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
             <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
           </Label>
           <Input
-            value={formData.mobileNumber}
+            value={readOnlyData.mobileNumber}
             className="bg-muted/30"
             readOnly
           />
@@ -136,21 +318,148 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
           </Label>
           <Input
             type="email"
-            value={formData.email}
+            value={readOnlyData.email}
             className="bg-muted/30"
             readOnly
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">
+              <BilingualText english="Country of Birth" bengali="জন্মের দেশ" />
+            </Label>
+            <Input
+              value={readOnlyData.countryOfBirth}
+              className="bg-muted/30"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">
+              <BilingualText english="Country of Residence" bengali="বসবাসের দেশ" />
+            </Label>
+            <Input
+              value={readOnlyData.countryOfResidence}
+              className="bg-muted/30"
+              readOnly
+            />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Editable Fields Section */}
+      <div className="space-y-3">
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <p className="text-xs font-medium text-primary">
+            <BilingualText 
+              english="Editable Fields" 
+              bengali="সম্পাদনাযোগ্য ক্ষেত্র" 
+            />
+          </p>
+        </div>
+
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Occupation" bengali="পেশা" />
+            <BilingualText english="Marital Status" bengali="বৈবাহিক অবস্থা" />
+          </Label>
+          <Select
+            value={formData.maritalStatus}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, maritalStatus: value }))}
+            disabled={isReadOnly}
+          >
+            <SelectTrigger className="bg-background border-input">
+              <SelectValue placeholder="-- Select Marital Status --" />
+            </SelectTrigger>
+            <SelectContent className="bg-card z-50">
+              {MARITAL_STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
+            <BilingualText english="E-TIN Number" bengali="ই-টিন নম্বর" />
           </Label>
           <Input
-            value={formData.occupation}
-            className="bg-muted/30"
-            readOnly
+            value={formData.tinNumber}
+            onChange={(e) => setFormData(prev => ({ ...prev, tinNumber: e.target.value }))}
+            placeholder="Enter E-TIN Number"
+            className="bg-background border-input"
+            readOnly={isReadOnly}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
+            <BilingualText english="District of Birth" bengali="জন্মের জেলা" />
+          </Label>
+          <Select
+            value={formData.districtOfBirthCode}
+            onValueChange={handleDistrictChange}
+            disabled={isReadOnly}
+          >
+            <SelectTrigger className="bg-background border-input">
+              {loadingDistricts ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Loading...</span>
+                </div>
+              ) : (
+                <SelectValue placeholder="-- Select District --" />
+              )}
+            </SelectTrigger>
+            <SelectContent className="bg-card z-50 max-h-60">
+              {districts.map((district) => (
+                <SelectItem key={district.districtcode} value={district.districtcode}>
+                  {district.districtname}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
+            <BilingualText english="Emergency Contact Name" bengali="জরুরি যোগাযোগের নাম" />
+          </Label>
+          <Input
+            value={formData.emergencyContactName}
+            onChange={(e) => setFormData(prev => ({ ...prev, emergencyContactName: e.target.value }))}
+            placeholder="Enter emergency contact name"
+            className="bg-background border-input"
+            readOnly={isReadOnly}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-foreground">
+            <BilingualText english="Emergency Contact Number" bengali="জরুরি যোগাযোগের নম্বর" />
+          </Label>
+          <Input
+            value={formData.emergencyContactNumber}
+            onChange={(e) => handleEmergencyNumberChange(e.target.value)}
+            placeholder="01XXXXXXXXX"
+            className={`bg-background border-input ${emergencyNumberError ? 'border-destructive' : ''}`}
+            readOnly={isReadOnly}
+            maxLength={11}
+          />
+          {emergencyNumberError && (
+            <p className="text-xs text-destructive">{emergencyNumberError}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            <BilingualText 
+              english="11 digits, must start with 01" 
+              bengali="১১ সংখ্যা, 01 দিয়ে শুরু হতে হবে" 
+            />
+          </p>
         </div>
       </div>
 
@@ -160,11 +469,19 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
       <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
         <p className="text-sm text-foreground">
           <BilingualText 
-            english="📝 This information is fetched from your bank records and cannot be modified here." 
-            bengali="📝 এই তথ্য আপনার ব্যাংক রেকর্ড থেকে নেওয়া হয়েছে এবং এখানে পরিবর্তন করা যাবে না।" 
+            english="📝 Read-only fields are fetched from your bank records. Editable fields can be updated as needed." 
+            bengali="📝 শুধুমাত্র পাঠযোগ্য ক্ষেত্রগুলি আপনার ব্যাংক রেকর্ড থেকে নেওয়া হয়েছে। সম্পাদনাযোগ্য ক্ষেত্রগুলি প্রয়োজন অনুযায়ী আপডেট করা যেতে পারে।" 
           />
         </p>
       </div>
+
+      {/* Saving indicator */}
+      {isSaving && (
+        <div className="flex items-center justify-center gap-2 p-3 bg-primary/10 rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <span className="text-sm text-primary">Saving personal information...</span>
+        </div>
+      )}
     </div>
   );
 };
