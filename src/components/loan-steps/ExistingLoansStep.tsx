@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2, Plus, Trash2, Lock } from "lucide-react";
+import { AlertCircle, Loader2, Plus, Trash2, Lock, CheckCircle2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import {
   Select,
@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { loanApplicationApi, BankData, BranchData, LiabilityData } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
 import { toast } from "sonner";
 
 interface ExistingLoansStepProps {
@@ -29,7 +30,6 @@ interface LiabilityFormData {
   bankName: string;
   branchCode: string;
   branchName: string;
-  district: string;
   loanAmount: string;
   outstanding: string;
   emi: string;
@@ -41,7 +41,6 @@ const defaultLiabilityForm: LiabilityFormData = {
   bankName: "",
   branchCode: "",
   branchName: "",
-  district: "",
   loanAmount: "",
   outstanding: "",
   emi: "",
@@ -69,29 +68,73 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
   // Liability form state
   const [liabilityForm, setLiabilityForm] = useState<LiabilityFormData>(defaultLiabilityForm);
   const [liabilities, setLiabilities] = useState<LiabilityData[]>(
-    // Pre-populate liabilities from data if available
     data.existingLoans || []
   );
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   // Master data state
   const [banks, setBanks] = useState<BankData[]>([]);
   const [branches, setBranches] = useState<BranchData[]>([]);
 
   // Loading states
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingBanks, setLoadingBanks] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [completingNoLiability, setCompletingNoLiability] = useState(false);
 
-  // Load banks on mount (only if not read-only)
+  // Load existing liabilities from API on mount
   useEffect(() => {
-    if (isReadOnly) return;
-    
+    const loadLiabilities = async () => {
+      setLoadingInitial(true);
+      try {
+        const session = getSessionContext();
+        const response = await loanApplicationApi.getOtherBankLiability(session.applicationId || "");
+        
+        if (isSuccessResponse(response) && response.dataList && response.dataList.length > 0) {
+          // Filter out "No record found" entries
+          const validLiabilities = response.dataList.filter(
+            (item: any) => item.status !== "608" && item.status !== "No record found"
+          );
+          setLiabilities(validLiabilities);
+          setFormData(prev => ({ ...prev, notApplicable: false }));
+        } else {
+          setLiabilities([]);
+          // Check if status 608 means no record
+          if (hasLiabilityStatus608) {
+            setFormData(prev => ({ ...prev, notApplicable: true }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load liabilities:", error);
+        setLiabilities([]);
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+
+    // Use prefilled data if available, otherwise load from API
+    if (data.existingLoans && data.existingLoans.length > 0) {
+      setLiabilities(data.existingLoans);
+      setLoadingInitial(false);
+    } else if (!isReadOnly) {
+      loadLiabilities();
+    } else {
+      setLoadingInitial(false);
+    }
+  }, [data.existingLoans, hasLiabilityStatus608, isReadOnly]);
+
+  // Load banks when showing add form
+  useEffect(() => {
     const loadBanks = async () => {
+      if (!showAddForm || banks.length > 0 || isReadOnly) return;
+      
       setLoadingBanks(true);
       try {
         const response = await loanApplicationApi.getBankList();
-        if (response.status === "S" && response.dataList) {
+        if (isSuccessResponse(response) && response.dataList) {
           setBanks(response.dataList);
         }
       } catch (error) {
@@ -102,15 +145,17 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
       }
     };
     loadBanks();
-  }, [isReadOnly]);
+  }, [showAddForm, banks.length, isReadOnly]);
 
   // Load branches when bank changes
-  const loadBranches = async (bankCode: string) => {
+  const loadBranches = useCallback(async (bankCode: string) => {
+    if (!bankCode) return;
+    
     setLoadingBranches(true);
     setBranches([]);
     try {
       const response = await loanApplicationApi.getBankBranchList(bankCode);
-      if (response.status === "S" && response.dataList) {
+      if (isSuccessResponse(response) && response.dataList) {
         setBranches(response.dataList);
       }
     } catch (error) {
@@ -119,7 +164,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     } finally {
       setLoadingBranches(false);
     }
-  };
+  }, []);
 
   const handleBankChange = (bankCode: string) => {
     const selectedBank = banks.find(b => b.bankcode === bankCode);
@@ -146,52 +191,128 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     setLiabilityForm(prev => ({ ...prev, [field]: value }));
   };
 
+  // Save liability via API
   const handleAddOrUpdate = async () => {
-    if (!liabilityForm.bankCode || !liabilityForm.branchCode || !liabilityForm.loanType) {
-      toast.error("Please fill in all required fields");
+    if (!liabilityForm.bankCode || !liabilityForm.branchCode || !liabilityForm.loanType || !liabilityForm.loanAmount) {
+      toast.error("Please fill in all required fields (Bank, Branch, Loan Type, Amount)");
       return;
     }
 
     setSubmitting(true);
-    // For now, just add to local state (API call will be done on form submit)
-    const newLiability: LiabilityData = {
-      liabilityid: editingId || Date.now().toString(),
-      applicationid: "",
-      bankname: liabilityForm.bankName,
-      bankcode: liabilityForm.bankCode,
-      branchname: liabilityForm.branchName,
-      branchcode: liabilityForm.branchCode,
-      loantype: liabilityForm.loanType,
-      loanamount: liabilityForm.loanAmount,
-      outstanding: liabilityForm.outstanding,
-      emi: liabilityForm.emi,
-      liabilitytype: "L"
-    };
+    try {
+      const session = getSessionContext();
+      
+      const payload = {
+        liabilityid: editingId || "",
+        applicationid: session.applicationId || "",
+        bankname: liabilityForm.bankCode, // API expects code in bankname field
+        branchname: liabilityForm.branchCode, // API expects code in branchname field
+        loantype: liabilityForm.loanType,
+        loanamount: liabilityForm.loanAmount,
+        outstanding: liabilityForm.outstanding || "0",
+        emi: liabilityForm.emi || "0",
+        liabilitytype: "L" as const,
+      };
 
-    if (editingId) {
-      setLiabilities(prev => prev.map(l => l.liabilityid === editingId ? newLiability : l));
-      setEditingId(null);
-    } else {
-      setLiabilities(prev => [...prev, newLiability]);
+      const response = await loanApplicationApi.saveOtherBankLiability(payload);
+      
+      if (isSuccessResponse(response)) {
+        toast.success(editingId ? "Liability updated successfully" : "Liability added successfully");
+        
+        // Reload liabilities from API
+        const refreshResponse = await loanApplicationApi.getOtherBankLiability(session.applicationId || "");
+        if (isSuccessResponse(refreshResponse) && refreshResponse.dataList) {
+          const validLiabilities = refreshResponse.dataList.filter(
+            (item: any) => item.status !== "608" && item.status !== "No record found"
+          );
+          setLiabilities(validLiabilities);
+        }
+        
+        // Reset form
+        setLiabilityForm(defaultLiabilityForm);
+        setShowAddForm(false);
+        setBranches([]);
+        setEditingId(null);
+      } else {
+        throw new Error(response.message || "Failed to save liability");
+      }
+    } catch (error: any) {
+      console.error("Failed to save liability:", error);
+      toast.error(error.message || "Failed to save liability");
+    } finally {
+      setSubmitting(false);
     }
-
-    setLiabilityForm(defaultLiabilityForm);
-    setBranches([]);
-    setSubmitting(false);
-    toast.success(editingId ? "Liability updated" : "Liability added");
   };
 
-  const handleDelete = (liabilityId: string) => {
-    setLiabilities(prev => prev.filter(l => l.liabilityid !== liabilityId));
-    toast.success("Liability removed");
+  // Delete liability via API
+  const handleDelete = async (liabilityId: string) => {
+    setDeletingId(liabilityId);
+    try {
+      const session = getSessionContext();
+      const response = await loanApplicationApi.deleteOtherBankLiability(liabilityId, session.applicationId || "");
+      
+      if (isSuccessResponse(response)) {
+        toast.success("Liability deleted successfully");
+        setLiabilities(prev => prev.filter(l => l.liabilityid !== liabilityId));
+      } else {
+        throw new Error(response.message || "Failed to delete liability");
+      }
+    } catch (error: any) {
+      console.error("Failed to delete liability:", error);
+      toast.error(error.message || "Failed to delete liability");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  const handleNext = () => {
-    onNext({
-      ...formData,
-      liabilities
-    });
+  // Handle no liability - call complete API
+  const handleNoLiabilityComplete = async () => {
+    setCompletingNoLiability(true);
+    try {
+      const session = getSessionContext();
+      const response = await loanApplicationApi.saveOtherBankLiabilityComplete(session.applicationId || "");
+      
+      if (isSuccessResponse(response)) {
+        toast.success("Confirmed: No other bank liability");
+        onNext({ noLiability: true, liabilities: [] });
+      } else {
+        throw new Error(response.message || "Failed to confirm");
+      }
+    } catch (error: any) {
+      console.error("Failed to complete no liability:", error);
+      toast.error(error.message || "Failed to confirm");
+    } finally {
+      setCompletingNoLiability(false);
+    }
   };
+
+  const handleNext = async () => {
+    if (formData.notApplicable && liabilities.length === 0) {
+      await handleNoLiabilityComplete();
+    } else {
+      onNext({
+        ...formData,
+        liabilities
+      });
+    }
+  };
+
+  // Expose handleNext for parent component
+  useEffect(() => {
+    (window as any).__existingLoansStepSave = handleNext;
+    return () => {
+      delete (window as any).__existingLoansStepSave;
+    };
+  }, [handleNext]);
+
+  if (loadingInitial) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading liabilities...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -229,42 +350,154 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
         )}
       </div>
 
-      {/* Not Applicable Checkbox - Only show if not read-only, or if it's checked */}
-      {(formData.notApplicable || !isReadOnly) && (
-        <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg">
+      {/* No Liability Checkbox - Show only when no liabilities exist and not adding */}
+      {liabilities.length === 0 && !showAddForm && !isReadOnly && (
+        <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-xl border border-border/50">
           <Checkbox
             id="notApplicable"
             checked={formData.notApplicable}
-            disabled={isReadOnly}
-            onCheckedChange={(checked) => !isReadOnly && setFormData(prev => ({ 
+            disabled={isReadOnly || completingNoLiability}
+            onCheckedChange={(checked) => setFormData(prev => ({ 
               ...prev, 
               notApplicable: checked as boolean 
             }))}
+            className="mt-0.5"
           />
-          <label htmlFor="notApplicable" className={`text-sm font-medium ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+          <div className="space-y-1">
+            <label htmlFor="notApplicable" className="text-sm font-medium cursor-pointer">
+              <BilingualText 
+                english="I do not have any other bank liability" 
+                bengali="আমার অন্য কোনো ব্যাংকের দায় নেই" 
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">
+              <BilingualText 
+                english="Check this if you have no existing loans from other banks" 
+                bengali="অন্য ব্যাংক থেকে কোনো ঋণ না থাকলে এটি চেক করুন" 
+              />
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {/* Show Not Applicable status in read-only mode */}
+      {isReadOnly && formData.notApplicable && (
+        <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
+          <CheckCircle2 className="w-5 h-5 text-success" />
+          <span className="text-sm font-medium text-success">
             <BilingualText 
-              english="Not Applicable" 
-              bengali="প্রযোজ্য নয়" 
+              english="No other bank liability declared" 
+              bengali="অন্য কোনো ব্যাংক দায় ঘোষণা করা হয়নি" 
             />
-          </label>
+          </span>
         </div>
       )}
 
       {!formData.notApplicable && (
         <>
-          {/* Liability Form - Only show if not read-only */}
-          {!isReadOnly && (
-          <div className="bg-secondary/20 p-4 rounded-lg space-y-4">
-            {/* Row 1: Loan Type, Bank Name, Branch Name, District */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Loan Type</Label>
-                <Select
-                  value={liabilityForm.loanType}
-                  onValueChange={(value) => handleInputChange("loanType", value)}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    <SelectValue placeholder="Select Loan Type" />
+          {/* Add New Button - Show when not adding and has no form open */}
+          {!showAddForm && !isReadOnly && (
+            <Button
+              variant="outline"
+              onClick={() => setShowAddForm(true)}
+              className="w-full border-dashed"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              <BilingualText english="Add Bank Liability" bengali="ব্যাংক দায় যোগ করুন" />
+            </Button>
+          )}
+          
+          {/* Liability Form - Only show when adding */}
+          {showAddForm && !isReadOnly && (
+          <div className="bg-secondary/20 p-4 rounded-lg space-y-4 border border-primary/30">
+            <div className="flex items-center justify-between pb-2 border-b border-border/30">
+              <h4 className="font-medium text-sm">
+                <BilingualText english="Add New Liability" bengali="নতুন দায় যোগ করুন" />
+              </h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setLiabilityForm(defaultLiabilityForm);
+                  setBranches([]);
+                  setEditingId(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+            
+            {/* Bank Name */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                <BilingualText english="Bank Name *" bengali="ব্যাংকের নাম *" />
+              </Label>
+              <Select
+                value={liabilityForm.bankCode}
+                onValueChange={handleBankChange}
+              >
+                <SelectTrigger className="bg-secondary/30 border-secondary">
+                  {loadingBanks ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading banks...</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="-- Select Bank --" />
+                  )}
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50 max-h-60">
+                  {banks.map((bank) => (
+                    <SelectItem key={bank.bankcode} value={bank.bankcode}>
+                      {bank.bankname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Branch Name */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                <BilingualText english="Branch Name *" bengali="শাখার নাম *" />
+              </Label>
+              <Select
+                value={liabilityForm.branchCode}
+                onValueChange={handleBranchChange}
+                disabled={!liabilityForm.bankCode}
+              >
+                <SelectTrigger className="bg-secondary/30 border-secondary">
+                  {loadingBranches ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading branches...</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder={liabilityForm.bankCode ? "-- Select Branch --" : "Select Bank first"} />
+                  )}
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50 max-h-60">
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.branchcode} value={branch.branchcode}>
+                      {branch.branchname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Loan Type */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                <BilingualText english="Loan Type *" bengali="ঋণের ধরন *" />
+              </Label>
+              <Select
+                value={liabilityForm.loanType}
+                onValueChange={(value) => handleInputChange("loanType", value)}
+              >
+                <SelectTrigger className="bg-secondary/30 border-secondary">
+                  <SelectValue placeholder="-- Select Loan Type --" />
                   </SelectTrigger>
                   <SelectContent className="bg-card z-50">
                     {loanTypes.map((type) => (
