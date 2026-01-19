@@ -94,14 +94,22 @@ export const LoanSummaryStep = ({ onNext, data }: LoanSummaryStepProps) => {
               <p className="text-muted-foreground">
                 <BilingualText english="Present Address" bengali="বর্তমান ঠিকানা" />
               </p>
-              <p className="font-medium">{data.presentAddress}, {data.presentCity} - {data.presentPostCode}</p>
+              <p className="font-medium">
+                {data.presentAddress?.addressLine1 || data.presentAddress || "-"}
+                {data.presentAddress?.districtName && `, ${data.presentAddress.districtName}`}
+                {data.presentAddress?.postCode && ` - ${data.presentAddress.postCode}`}
+              </p>
             </div>
-            {!data.sameAsPresent && (
+            {data.permanentAddress && (
               <div>
                 <p className="text-muted-foreground">
                   <BilingualText english="Permanent Address" bengali="স্থায়ী ঠিকানা" />
                 </p>
-                <p className="font-medium">{data.permanentAddress}, {data.permanentCity} - {data.permanentPostCode}</p>
+                <p className="font-medium">
+                  {data.permanentAddress?.addressLine1 || data.permanentAddress || "-"}
+                  {data.permanentAddress?.districtName && `, ${data.permanentAddress.districtName}`}
+                  {data.permanentAddress?.postCode && ` - ${data.permanentAddress.postCode}`}
+                </p>
               </div>
             )}
           </div>
@@ -119,9 +127,9 @@ export const LoanSummaryStep = ({ onNext, data }: LoanSummaryStepProps) => {
           </div>
           
           <p className="text-sm">
-            {data.hasExistingLoans ? (
+            {data.existingLoans && data.existingLoans.length > 0 ? (
               <span className="text-warning">
-                <BilingualText english="Has existing loans with other banks" bengali="অন্যান্য ব্যাংকের সাথে বিদ্যমান ঋণ রয়েছে" />
+                <BilingualText english={`${data.existingLoans.length} existing loan(s) with other banks`} bengali={`অন্যান্য ব্যাংকে ${data.existingLoans.length}টি বিদ্যমান ঋণ রয়েছে`} />
               </span>
             ) : (
               <span className="text-success">

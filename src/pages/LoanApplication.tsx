@@ -99,9 +99,12 @@ const LoanApplication = () => {
       data.communicationAddress = c.preferredcommunication || "present";
     }
 
-    // Map liability data
+    // Map liability data with status check
     if (applicationData.liabilityData && applicationData.liabilityData.length > 0) {
       data.existingLoans = applicationData.liabilityData;
+      data.hasLiabilityData = true;
+    } else {
+      data.liabilityStatus = applicationData.hasLiabilityData ? "" : "608";
     }
 
     // Map loan details from acMasterData

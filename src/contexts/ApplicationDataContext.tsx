@@ -109,6 +109,7 @@ export interface LiabilityData {
   liabilitytype: string;
   cardnumber?: string;
   expirydate?: string;
+  status?: string;
 }
 
 // Document Data structure from API
@@ -117,7 +118,9 @@ export interface DocumentData {
   documenttype: string;
   documentname: string;
   imagedata?: string; // Base64 encoded
+  physicalfilebase64?: string; // Another format for base64 data
   uploaddate?: string;
+  status?: string;
 }
 
 // Complete Application Data
@@ -136,8 +139,11 @@ export interface ApplicationDataState {
   isDataLoaded: boolean;
   isReadOnly: boolean;
   hasPersonalData: boolean;
+  hasContactData: boolean;
   hasProfessionalData: boolean;
   hasAcMasterData: boolean;
+  hasLiabilityData: boolean;
+  hasDocumentData: boolean;
 }
 
 interface ApplicationDataContextType {
@@ -168,8 +174,11 @@ const defaultState: ApplicationDataState = {
   isDataLoaded: false,
   isReadOnly: true,
   hasPersonalData: false,
+  hasContactData: false,
   hasProfessionalData: false,
   hasAcMasterData: false,
+  hasLiabilityData: false,
+  hasDocumentData: false,
 };
 
 const ApplicationDataContext = createContext<ApplicationDataContextType | undefined>(undefined);
@@ -206,44 +215,60 @@ export const ApplicationDataProvider: React.FC<{ children: ReactNode }> = ({ chi
       isReadOnly: true,
     };
 
-    // Map personalData section
-    if (response.personalInfo && response.personalInfo.status !== "No record found") {
-      newState.personalData = response.personalInfo;
+    // Map personalData section - check for dataList or direct data
+    const personalInfoData = response.personalInfo?.dataList?.[0] || response.personalInfo;
+    if (personalInfoData && personalInfoData.status !== "No record found" && personalInfoData.status !== "608") {
+      newState.personalData = personalInfoData;
       newState.hasPersonalData = true;
     }
 
-    // Map contactData section
-    if (response.contactInfo && response.contactInfo.status !== "No record found") {
-      newState.contactData = response.contactInfo;
+    // Map contactData section - check for dataList or direct data
+    const contactInfoData = response.contactInfo?.dataList?.[0] || response.contactInfo;
+    if (contactInfoData && contactInfoData.status !== "No record found" && contactInfoData.status !== "608") {
+      newState.contactData = contactInfoData;
+      newState.hasContactData = true;
     }
 
-    // Map professionalData section
-    if (response.professionalInfo && response.professionalInfo.status !== "No record found") {
-      newState.professionalData = response.professionalInfo;
+    // Map professionalData section - check for dataList or direct data
+    // Status 608 means "No record found" in this API
+    const professionalInfoData = response.professionalInfo?.dataList?.[0] || response.professionalInfo;
+    if (professionalInfoData && professionalInfoData.status !== "No record found" && professionalInfoData.status !== "608") {
+      newState.professionalData = professionalInfoData;
       newState.hasProfessionalData = true;
     }
 
-    // Map acMasterData section
-    if (response.loanInfo && response.loanInfo.status !== "No record found") {
+    // Map acMasterData section - check for dataList or direct data
+    const loanInfoData = response.loanInfo?.dataList?.[0] || response.loanInfo;
+    if (loanInfoData && loanInfoData.status !== "No record found" && loanInfoData.status !== "608") {
       newState.acMasterData = {
         applicationid: basicInfo.applicationId,
-        ...response.loanInfo
+        ...loanInfoData
       };
       newState.hasAcMasterData = true;
     }
 
-    // Map liabilityData section
-    if (response.liabilityInfo && Array.isArray(response.liabilityInfo) && response.liabilityInfo.length > 0) {
-      newState.liabilityData = response.liabilityInfo.filter(
-        (item: any) => item.status !== "No record found"
+    // Map liabilityData section - check for dataList array
+    const liabilityList = response.liabilityInfo?.dataList || response.liabilityInfo;
+    if (liabilityList && Array.isArray(liabilityList) && liabilityList.length > 0) {
+      const filteredLiabilities = liabilityList.filter(
+        (item: any) => item.status !== "No record found" && item.status !== "608"
       );
+      if (filteredLiabilities.length > 0) {
+        newState.liabilityData = filteredLiabilities;
+        newState.hasLiabilityData = true;
+      }
     }
 
-    // Map documentData section
-    if (response.documentInfo && Array.isArray(response.documentInfo) && response.documentInfo.length > 0) {
-      newState.documentData = response.documentInfo.filter(
-        (item: any) => item.status !== "No record found"
+    // Map documentData section - check for dataList array
+    const documentList = response.documentInfo?.dataList || response.documentInfo;
+    if (documentList && Array.isArray(documentList) && documentList.length > 0) {
+      const filteredDocs = documentList.filter(
+        (item: any) => item.status !== "No record found" && item.status !== "608"
       );
+      if (filteredDocs.length > 0) {
+        newState.documentData = filteredDocs;
+        newState.hasDocumentData = true;
+      }
     }
 
     setApplicationDataState(newState);
