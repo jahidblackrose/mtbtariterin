@@ -1,8 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { User, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PersonalInfoStepProps {
   onNext: (data: any) => void;
@@ -20,150 +26,224 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
     nidNumber: data.nidNumber || "",
     mobileNumber: data.mobileNumber || "",
     email: data.email || "",
-    occupation: data.occupation || "",
     gender: data.gender || "",
     maritalStatus: data.maritalStatus || "",
+    districtOfBirth: data.districtOfBirth || "",
+    countryOfBirth: data.countryOfBirth || "Bangladesh",
+    countryOfResidence: data.countryOfResidence || "Bangladesh",
+    etinNumber: data.etinNumber || "",
+    emergencyContactName: data.emergencyContactName || "",
+    emergencyContactNumber: data.emergencyContactNumber || "",
   };
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-        <User className="w-5 h-5 text-primary flex-shrink-0" />
-        <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-sm">
-            <BilingualText english="Personal Information" bengali="ব্যক্তিগত তথ্য" />
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            <BilingualText 
-              english="Your information from bank records" 
-              bengali="ব্যাংক রেকর্ড থেকে আপনার তথ্য" 
-            />
-          </p>
-        </div>
+      <div className="flex items-center justify-between p-3 bg-primary rounded-t-lg">
+        <h3 className="font-semibold text-sm text-primary-foreground">
+          <BilingualText english="Applicant Personal Details" bengali="আবেদনকারীর ব্যক্তিগত বিবরণ" />
+        </h3>
         {isReadOnly && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+          <div className="flex items-center gap-1 text-xs text-primary-foreground/80">
             <Lock className="w-3 h-3" />
-            <span>Read-only</span>
+            <span>Logout</span>
           </div>
         )}
       </div>
 
-      {/* Form Fields - All read-only when prefilled */}
-      <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Full Name" bengali="পূর্ণ নাম" />
-          </Label>
-          <Input
-            value={formData.fullName}
-            className="bg-muted/30"
-            readOnly
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Father's Name" bengali="পিতার নাম" />
-          </Label>
-          <Input
-            value={formData.fatherName}
-            className="bg-muted/30"
-            readOnly
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Mother's Name" bengali="মাতার নাম" />
-          </Label>
-          <Input
-            value={formData.motherName}
-            className="bg-muted/30"
-            readOnly
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
+      {/* Form Fields - 3 Column Grid */}
+      <div className="p-4 bg-muted/30 rounded-b-lg space-y-4">
+        {/* Row 1: Customer's Name, Date of Birth, Mobile Number */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Customer's Name" bengali="গ্রাহকের নাম" />
+            </Label>
+            <Input
+              value={formData.fullName}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
               <BilingualText english="Date of Birth" bengali="জন্ম তারিখ" />
             </Label>
             <Input
               value={formData.dateOfBirth}
-              className="bg-muted/30"
+              className="bg-muted/50 border-muted"
               readOnly
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">
-              <BilingualText english="Gender" bengali="লিঙ্গ" />
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
             </Label>
             <Input
-              value={formData.gender}
-              className="bg-muted/30"
+              value={formData.mobileNumber}
+              className="bg-muted/50 border-muted"
               readOnly
             />
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="NID Number" bengali="এনআইডি নম্বর" />
-          </Label>
-          <Input
-            value={formData.nidNumber}
-            className="bg-muted/30"
-            readOnly
-          />
+        {/* Row 2: Email, NID, Gender */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Email" bengali="ইমেইল" />
+            </Label>
+            <Input
+              type="email"
+              value={formData.email}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="NID" bengali="এনআইডি" />
+            </Label>
+            <Input
+              value={formData.nidNumber}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Gender" bengali="লিঙ্গ" />
+            </Label>
+            <Input
+              value={formData.gender}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Mobile Number" bengali="মোবাইল নম্বর" />
-          </Label>
-          <Input
-            value={formData.mobileNumber}
-            className="bg-muted/30"
-            readOnly
-          />
+        {/* Row 3: Marital Status, District of Birth, Country of Birth */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Marital Status" bengali="বৈবাহিক অবস্থা" />
+            </Label>
+            <Select value={formData.maritalStatus} disabled>
+              <SelectTrigger className="bg-muted/50 border-muted">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Single">Single</SelectItem>
+                <SelectItem value="Married">Married</SelectItem>
+                <SelectItem value="Divorced">Divorced</SelectItem>
+                <SelectItem value="Widowed">Widowed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-destructive">
+              <BilingualText english="District of Birth" bengali="জন্ম জেলা" /> *
+            </Label>
+            <Select value={formData.districtOfBirth} disabled>
+              <SelectTrigger className="bg-muted/50 border-muted">
+                <SelectValue placeholder="Select District" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Dhaka">Dhaka</SelectItem>
+                <SelectItem value="Faridpur">Faridpur</SelectItem>
+                <SelectItem value="Chittagong">Chittagong</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Country of Birth" bengali="জন্ম দেশ" />
+            </Label>
+            <Input
+              value={formData.countryOfBirth}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Email Address" bengali="ইমেইল ঠিকানা" />
-          </Label>
-          <Input
-            type="email"
-            value={formData.email}
-            className="bg-muted/30"
-            readOnly
-          />
+        {/* Row 4: Father's Name, Mother's Name, E-TIN Number */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Father's Name" bengali="পিতার নাম" />
+            </Label>
+            <Input
+              value={formData.fatherName}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Mother's Name" bengali="মাতার নাম" />
+            </Label>
+            <Input
+              value={formData.motherName}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="E-TIN Number" bengali="ই-টিআইএন নম্বর" />
+            </Label>
+            <Input
+              value={formData.etinNumber}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-foreground">
-            <BilingualText english="Occupation" bengali="পেশা" />
-          </Label>
-          <Input
-            value={formData.occupation}
-            className="bg-muted/30"
-            readOnly
-          />
+        {/* Row 5: Country of Residence, Emergency Contact Name, Emergency Contact Number */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Country of Residence" bengali="বসবাসের দেশ" />
+            </Label>
+            <Input
+              value={formData.countryOfResidence}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Emergency Contact Name" bengali="জরুরি যোগাযোগের নাম" />
+            </Label>
+            <Input
+              value={formData.emergencyContactName}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-primary">
+              <BilingualText english="Emergency Contact Number" bengali="জরুরি যোগাযোগ নম্বর" />
+            </Label>
+            <Input
+              value={formData.emergencyContactNumber}
+              className="bg-muted/50 border-muted"
+              readOnly
+            />
+          </div>
         </div>
-      </div>
-
-      <Separator />
-
-      {/* Note */}
-      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30">
-        <p className="text-sm text-foreground">
-          <BilingualText 
-            english="📝 This information is fetched from your bank records and cannot be modified here." 
-            bengali="📝 এই তথ্য আপনার ব্যাংক রেকর্ড থেকে নেওয়া হয়েছে এবং এখানে পরিবর্তন করা যাবে না।" 
-          />
-        </p>
       </div>
     </div>
   );
