@@ -21,7 +21,7 @@ import {
   getSessionContext, 
   updateSessionContext,
   isApiConfigured,
-  clearTokens,
+  clearSession,
 } from '@/services/apiClient';
 
 export interface ApiState {
@@ -602,8 +602,8 @@ export function useLoanApi() {
     updateSessionContext(updates);
   }, []);
 
-  const clearSession = useCallback(() => {
-    clearTokens();
+  const clearSessionData = useCallback(() => {
+    clearSession();
   }, []);
 
   return {
@@ -649,7 +649,7 @@ export function useLoanApi() {
     // Session
     getSession,
     updateSession,
-    clearSession,
+    clearSession: clearSessionData,
   };
 }
 

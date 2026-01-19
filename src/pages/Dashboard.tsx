@@ -17,7 +17,7 @@ import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { useApplicationData } from "@/contexts/ApplicationDataContext";
-import { getSessionContext, clearTokens } from "@/services/apiClient";
+import { getSessionContext, clearSession } from "@/services/apiClient";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
 const Dashboard = () => {
@@ -32,7 +32,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     // Clear all session data
-    clearTokens();
+    clearSession();
     clearApplicationData();
     
     toast({
