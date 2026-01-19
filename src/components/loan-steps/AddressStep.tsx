@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin, Loader2, Lock } from "lucide-react";
@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { loanApplicationApi, DistrictData, ThanaData } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
 import { toast } from "sonner";
 
 interface AddressStepProps {
@@ -73,6 +75,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
   const [loadingPresentPostOffice, setLoadingPresentPostOffice] = useState(false);
   const [loadingPermanentPostOffice, setLoadingPermanentPostOffice] = useState(false);
   const [loadingProfessionalPostOffice, setLoadingProfessionalPostOffice] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load districts on mount (only if not read-only)
   useEffect(() => {
@@ -82,7 +85,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
       setLoadingDistricts(true);
       try {
         const response = await loanApplicationApi.getDistrictList();
-        if (response.status === "S" && response.dataList) {
+        if (isSuccessResponse(response) && response.dataList) {
           setDistricts(response.dataList);
         }
       } catch (error) {
@@ -96,7 +99,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
   }, [isReadOnly]);
 
   // Load thanas when district changes for each section
-  const loadThanas = async (
+  const loadThanas = useCallback(async (
     districtCode: string,
     section: 'present' | 'permanent' | 'professional'
   ) => {
@@ -113,7 +116,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     setLoading(true);
     try {
       const response = await loanApplicationApi.getThanaList(districtCode);
-      if (response.status === "S" && response.dataList) {
+      if (isSuccessResponse(response) && response.dataList) {
         setThanas(response.dataList);
       }
     } catch (error) {
@@ -122,10 +125,10 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [isReadOnly]);
 
   // Load post offices when thana changes for each section
-  const loadPostOffices = async (
+  const loadPostOffices = useCallback(async (
     districtCode: string,
     thanaCode: string,
     section: 'present' | 'permanent' | 'professional'
@@ -143,7 +146,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     setLoading(true);
     try {
       const response = await loanApplicationApi.getPostOfficeList(districtCode, thanaCode);
-      if (response.status === "S" && response.dataList) {
+      if (isSuccessResponse(response) && response.dataList) {
         setPostOffices(response.dataList);
       }
     } catch (error) {
@@ -152,7 +155,82 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [isReadOnly]);
+
+  // Save address data via API
+  const saveAddressData = useCallback(async () => {
+    if (isReadOnly) return true;
+    
+    setIsSaving(true);
+    try {
+      const session = getSessionContext();
+      
+      const payload = {
+        applicationid: session.applicationId || "",
+        cif: session.customerId || "",
+        // Present Address
+        presentaddr1: formData.presentAddress.addressLine1,
+        presentaddr2: formData.presentAddress.addressLine2,
+        presentdistrict: formData.presentAddress.district,
+        presentthana: formData.presentAddress.thana,
+        presentpostcode: formData.presentAddress.postCode,
+        presentcountry: formData.presentAddress.country,
+        // Permanent Address
+        permanentaddr1: formData.permanentAddress.addressLine1,
+        permanentaddr2: formData.permanentAddress.addressLine2,
+        permanentdistrict: formData.permanentAddress.district,
+        permanentthana: formData.permanentAddress.thana,
+        permanentpostcode: formData.permanentAddress.postCode,
+        permanentcountry: formData.permanentAddress.country,
+        // Professional Address
+        professionaddr1: formData.professionalAddress.addressLine1,
+        professionaddr2: formData.professionalAddress.addressLine2,
+        professiondistrict: formData.professionalAddress.district,
+        professionthana: formData.professionalAddress.thana,
+        professionpostcode: formData.professionalAddress.postCode,
+        professioncountry: formData.professionalAddress.country,
+        // Preferred Communication
+        preferredcommunication: formData.communicationAddress,
+      };
+
+      const response = await loanApplicationApi.saveContactDetails(payload);
+      
+      if (isSuccessResponse(response)) {
+        toast.success("Address information saved successfully");
+        return true;
+      } else {
+        throw new Error(response.message || "Failed to save address");
+      }
+    } catch (error: any) {
+      console.error("Failed to save address:", error);
+      toast.error(error.message || "Failed to save address information");
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isReadOnly, formData]);
+
+  // Handle next - save before proceeding
+  const handleNext = useCallback(async () => {
+    if (isReadOnly) {
+      onNext(formData);
+      return;
+    }
+    
+    const saved = await saveAddressData();
+    if (saved) {
+      onNext(formData);
+    }
+  }, [isReadOnly, formData, onNext, saveAddressData]);
+
+  // Expose handleNext for parent component
+  useEffect(() => {
+    // This exposes the save function for the parent's Next button
+    (window as any).__addressStepSave = handleNext;
+    return () => {
+      delete (window as any).__addressStepSave;
+    };
+  }, [handleNext]);
 
   const handleAddressChange = (
     section: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
@@ -499,39 +577,53 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
 
       {/* Preferred Communication Address */}
       <div className="space-y-3">
-        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-t-lg font-semibold">
+        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-t-lg font-semibold flex items-center justify-between">
           <BilingualText english="Preferred Communication Address" bengali="যোগাযোগের পছন্দের ঠিকানা" />
+          {isReadOnly && (
+            <div className="flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded">
+              <Lock className="w-3 h-3" />
+              <span>Read-only</span>
+            </div>
+          )}
         </div>
-        <div className="bg-secondary/20 p-4 rounded-b-lg space-y-3">
-          {["present", "permanent", "professional"].map((type) => (
-            <div key={type} className="flex items-center space-x-3">
-              <div 
-                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  isReadOnly ? "cursor-default" : "cursor-pointer"
-                } ${
-                  formData.communicationAddress === type 
-                    ? "border-primary bg-primary" 
-                    : "border-muted-foreground"
-                }`}
-                onClick={() => !isReadOnly && setFormData(prev => ({ ...prev, communicationAddress: type }))}
-              >
-                {formData.communicationAddress === type && (
-                  <div className="w-2 h-2 rounded-full bg-primary-foreground" />
-                )}
-              </div>
-              <Label 
-                className={isReadOnly ? "cursor-default" : "cursor-pointer"}
-                onClick={() => !isReadOnly && setFormData(prev => ({ ...prev, communicationAddress: type }))}
-              >
-                <BilingualText 
-                  english={`${type.charAt(0).toUpperCase() + type.slice(1)} Address`} 
-                  bengali={type === "present" ? "বর্তমান ঠিকানা" : type === "permanent" ? "স্থায়ী ঠিকানা" : "পেশাদার ঠিকানা"} 
-                />
+        <div className="bg-secondary/20 p-4 rounded-b-lg">
+          <RadioGroup
+            value={formData.communicationAddress}
+            onValueChange={(value) => !isReadOnly && setFormData(prev => ({ ...prev, communicationAddress: value }))}
+            disabled={isReadOnly}
+            className="space-y-3"
+          >
+            <div className="flex items-center space-x-3 p-3 rounded-lg bg-background border border-border/50 hover:border-primary/50 transition-colors">
+              <RadioGroupItem value="present" id="comm-present" disabled={isReadOnly} />
+              <Label htmlFor="comm-present" className={`flex-1 ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+                <BilingualText english="Present Address" bengali="বর্তমান ঠিকানা" />
               </Label>
             </div>
-          ))}
+            
+            <div className="flex items-center space-x-3 p-3 rounded-lg bg-background border border-border/50 hover:border-primary/50 transition-colors">
+              <RadioGroupItem value="permanent" id="comm-permanent" disabled={isReadOnly} />
+              <Label htmlFor="comm-permanent" className={`flex-1 ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+                <BilingualText english="Permanent Address" bengali="স্থায়ী ঠিকানা" />
+              </Label>
+            </div>
+            
+            <div className="flex items-center space-x-3 p-3 rounded-lg bg-background border border-border/50 hover:border-primary/50 transition-colors">
+              <RadioGroupItem value="professional" id="comm-professional" disabled={isReadOnly} />
+              <Label htmlFor="comm-professional" className={`flex-1 ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+                <BilingualText english="Professional Address" bengali="পেশাদার ঠিকানা" />
+              </Label>
+            </div>
+          </RadioGroup>
         </div>
       </div>
+      
+      {/* Saving indicator */}
+      {isSaving && (
+        <div className="flex items-center justify-center gap-2 p-3 bg-primary/10 rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <span className="text-sm text-primary">Saving address information...</span>
+        </div>
+      )}
     </div>
   );
 };
