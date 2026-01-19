@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,62 +10,80 @@ import {
   User,
   FileText,
   Clock,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { BilingualText, LanguageToggle } from "@/components/BilingualText";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
+import { useApplicationData } from "@/contexts/ApplicationDataContext";
+import { getSessionContext, clearTokens } from "@/services/apiClient";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [existingLoans] = useState([
-    {
-      id: "LN001",
-      amount: 150000,
-      balance: 45000,
-      installmentPaid: 8,
-      totalInstallments: 12,
-      status: "active",
-      nextDue: "2024-02-15",
-      monthlyPayment: 13500
-    },
-    {
-      id: "LN002", 
-      amount: 75000,
-      balance: 0,
-      installmentPaid: 6,
-      totalInstallments: 6,
-      status: "completed",
-      nextDue: null,
-      monthlyPayment: 12500
-    }
-  ]);
+  const { applicationData, clearApplicationData } = useApplicationData();
+  const session = getSessionContext();
+  
+  // Get dashboard data from context
+  const dashboardData = applicationData.dashboardData;
+  const existingLoans = dashboardData?.existingLoans || [];
+  const canApplyNewLoan = dashboardData?.canApplyNewLoan ?? true;
 
   const handleLogout = () => {
+    // Clear all session data
+    clearTokens();
+    clearApplicationData();
+    
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out",
     });
-    navigate("/");
+    navigate("/login");
   };
 
-  const handleCloseLoan = (loanId: string) => {
-    navigate("/loan-closure", { state: { loanId } });
+  const handleCloseLoan = (loanAcNo: string) => {
+    navigate("/loan-closure", { state: { loanId: loanAcNo } });
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
+    const normalizedStatus = status?.toUpperCase() || "";
+    switch (normalizedStatus) {
+      case "FULL":
+      case "ACTIVE":
         return <Badge className="status-pending">Active</Badge>;
-      case "completed":
+      case "CLOSED":
+      case "COMPLETED":
         return <Badge className="status-approved">Completed</Badge>;
-      case "overdue":
+      case "OVERDUE":
         return <Badge className="status-rejected">Overdue</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{status || "Unknown"}</Badge>;
     }
   };
+
+  // Format currency
+  const formatCurrency = (value: string | number) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    return `৳${numValue.toLocaleString()}`;
+  };
+
+  // Mask account number for display
+  const maskedAccountNumber = session.accountNumber 
+    ? `****${session.accountNumber.slice(-4)}` 
+    : "****";
+
+  const maskedMobile = session.mobileNumber 
+    ? `+880 ${session.mobileNumber.slice(0, 4)}***${session.mobileNumber.slice(-3)}` 
+    : "+880 ****";
+
+  // Calculate stats
+  const activeLoans = existingLoans.filter(loan => 
+    loan.accountstatus?.toUpperCase() !== 'CLOSED'
+  ).length;
+  const completedLoans = existingLoans.filter(loan => 
+    loan.accountstatus?.toUpperCase() === 'CLOSED'
+  ).length;
 
   return (
     <div className="min-h-screen tech-background">
@@ -113,67 +130,69 @@ const Dashboard = () => {
       <div className="banking-container px-4 py-6 relative z-20">
         <div className="grid gap-4 lg:gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-            {/* Quick Actions */}
-            <Card className="banking-card-elevated">
-              <CardHeader className="pb-3 px-4 sm:px-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Plus className="w-5 h-5 text-success" />
-                  <BilingualText english="Loan Services" bengali="ঋণ সেবা" />
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  <BilingualText 
-                    english="Apply for new loans or manage existing ones" 
-                    bengali="নতুন ঋণের জন্য আবেদন করুন বা বিদ্যমানগুলি পরিচালনা করুন" 
-                  />
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-4 sm:px-6">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Button 
-                    onClick={() => navigate("/loan-application")}
-                    className="h-16 sm:h-20 bg-success hover:bg-success/90 text-white text-left justify-start rounded-xl"
-                    size="lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                        <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-sm sm:text-base truncate">
-                          <BilingualText english="Apply New Loan" bengali="নতুন ঋণের আবেদন" />
+            {/* Quick Actions - Only show if newaccountopen = 1 */}
+            {canApplyNewLoan && (
+              <Card className="banking-card-elevated">
+                <CardHeader className="pb-3 px-4 sm:px-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Plus className="w-5 h-5 text-success" />
+                    <BilingualText english="Loan Services" bengali="ঋণ সেবা" />
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    <BilingualText 
+                      english="Apply for new loans or manage existing ones" 
+                      bengali="নতুন ঋণের জন্য আবেদন করুন বা বিদ্যমানগুলি পরিচালনা করুন" 
+                    />
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 sm:px-6">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button 
+                      onClick={() => navigate("/loan-application")}
+                      className="h-16 sm:h-20 bg-success hover:bg-success/90 text-white text-left justify-start rounded-xl"
+                      size="lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                          <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <div className="text-xs text-white/80 truncate">
-                          <BilingualText english="Quick & Easy" bengali="দ্রুত ও সহজ" />
-                        </div>
-                      </div>
-                    </div>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate("/loan-calculator")}
-                    className="h-16 sm:h-20 text-left justify-start rounded-xl border-2"
-                    size="lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-sm sm:text-base truncate">
-                          <BilingualText english="Loan Calculator" bengali="ঋণ ক্যালকুলেটর" />
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          <BilingualText english="Calculate EMI" bengali="ইএমআই গণনা" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm sm:text-base truncate">
+                            <BilingualText english="Apply New Loan" bengali="নতুন ঋণের আবেদন" />
+                          </div>
+                          <div className="text-xs text-white/80 truncate">
+                            <BilingualText english="Quick & Easy" bengali="দ্রুত ও সহজ" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      onClick={() => navigate("/loan-calculator")}
+                      className="h-16 sm:h-20 text-left justify-start rounded-xl border-2"
+                      size="lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                          <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm sm:text-base truncate">
+                            <BilingualText english="Loan Calculator" bengali="ঋণ ক্যালকুলেটর" />
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            <BilingualText english="Calculate EMI" bengali="ইএমআই গণনা" />
+                          </div>
+                        </div>
+                      </div>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Existing Loans */}
+            {/* Existing Loans - Populated from API */}
             <Card className="banking-card-elevated">
               <CardHeader className="pb-3 px-4 sm:px-6">
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -182,58 +201,82 @@ const Dashboard = () => {
                 </CardTitle>
                 <CardDescription className="text-sm">
                   <BilingualText 
-                    english="Manage your existing loan accounts" 
-                    bengali="আপনার বিদ্যমান ঋণ অ্যাকাউন্টগুলি পরিচালনা করুন" 
+                    english="View your existing loan accounts" 
+                    bengali="আপনার বিদ্যমান ঋণ অ্যাকাউন্টগুলি দেখুন" 
                   />
                 </CardDescription>
               </CardHeader>
               <CardContent className="px-4 sm:px-6">
                 <div className="space-y-3">
-                  {existingLoans.map((loan) => (
-                    <div key={loan.id} className="p-4 rounded-xl border-2 bg-card/50 hover:bg-card transition-all">
-                      <div className="flex items-start justify-between mb-2 gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3 className="font-semibold text-sm sm:text-base">Loan #{loan.id}</h3>
-                            {getStatusBadge(loan.status)}
+                  {existingLoans.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">
+                        <BilingualText 
+                          english="No loan accounts found" 
+                          bengali="কোনো ঋণ অ্যাকাউন্ট পাওয়া যায়নি" 
+                        />
+                      </p>
+                    </div>
+                  ) : (
+                    existingLoans.map((loan, index) => (
+                      <div key={loan.loanacno || index} className="p-4 rounded-xl border-2 bg-card/50 hover:bg-card transition-all">
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h3 className="font-semibold text-sm sm:text-base">
+                                <BilingualText 
+                                  english={`Loan ${loan.loanacno}`} 
+                                  bengali={`ঋণ ${loan.loanacno}`} 
+                                />
+                              </h3>
+                              {getStatusBadge(loan.accountstatus)}
+                            </div>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              {loan.productname || "Tarit Loan"}
+                            </p>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            <BilingualText 
-                              english={`৳${loan.amount.toLocaleString()} - ${loan.installmentPaid}/${loan.totalInstallments} paid`}
-                              bengali={`৳${loan.amount.toLocaleString()} - ${loan.installmentPaid}/${loan.totalInstallments} পরিশোধিত`}
-                            />
-                          </p>
+                          {loan.accountstatus?.toUpperCase() !== 'CLOSED' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleCloseLoan(loan.loanacno)}
+                              className="text-xs flex-shrink-0"
+                            >
+                              <BilingualText english="Close" bengali="বন্ধ করুন" />
+                            </Button>
+                          )}
                         </div>
-                        {loan.status === "active" && loan.installmentPaid > 0 && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleCloseLoan(loan.id)}
-                            className="text-xs flex-shrink-0"
-                          >
-                            <BilingualText english="Close" bengali="বন্ধ করুন" />
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
-                        <div>
-                          <p className="text-muted-foreground">
-                            <BilingualText english="Balance" bengali="বকেয়া" />
-                          </p>
-                          <p className="font-medium">৳{loan.balance.toLocaleString()}</p>
-                        </div>
-                        {loan.nextDue && (
+                        
+                        <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm mt-3">
                           <div>
                             <p className="text-muted-foreground">
-                              <BilingualText english="Next Due" bengali="পরবর্তী" />
+                              <BilingualText english="Loan Amount" bengali="ঋণের পরিমাণ" />
                             </p>
-                            <p className="font-medium">{loan.nextDue}</p>
+                            <p className="font-medium">{formatCurrency(loan.loanamount)}</p>
                           </div>
-                        )}
+                          <div>
+                            <p className="text-muted-foreground">
+                              <BilingualText english="Outstanding" bengali="বকেয়া" />
+                            </p>
+                            <p className="font-medium">{formatCurrency(loan.outstanding)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">
+                              <BilingualText english="Paid Installments" bengali="পরিশোধিত কিস্তি" />
+                            </p>
+                            <p className="font-medium">{loan.paidinstallments || "0"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">
+                              <BilingualText english="Remaining" bengali="অবশিষ্ট" />
+                            </p>
+                            <p className="font-medium">{loan.remaininginstallments || "0"}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -253,22 +296,21 @@ const Dashboard = () => {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="text-muted-foreground text-xs">
+                      <BilingualText english="Customer ID" bengali="গ্রাহক আইডি" />
+                    </p>
+                    <p className="font-medium">{session.customerId || session.cif || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">
                       <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
                     </p>
-                    <p className="font-medium">****1234</p>
+                    <p className="font-medium">{maskedAccountNumber}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">
                       <BilingualText english="Mobile" bengali="মোবাইল" />
                     </p>
-                    <p className="font-medium">+880 1***-***456</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <p className="text-muted-foreground text-xs">
-                      <BilingualText english="Customer Since" bengali="গ্রাহক হিসেবে" />
-                    </p>
-                    <p className="font-medium">Jan 2020</p>
+                    <p className="font-medium">{maskedMobile}</p>
                   </div>
                 </div>
               </CardContent>
@@ -290,7 +332,7 @@ const Dashboard = () => {
                         <BilingualText english="Completed" bengali="সম্পূর্ণ" />
                       </span>
                     </div>
-                    <span className="font-bold">1</span>
+                    <span className="font-bold">{completedLoans}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -299,11 +341,43 @@ const Dashboard = () => {
                         <BilingualText english="Active" bengali="সক্রিয়" />
                       </span>
                     </div>
-                    <span className="font-bold">1</span>
+                    <span className="font-bold">{activeLoans}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      <BilingualText english="Total Loans" bengali="মোট ঋণ" />
+                    </span>
+                    <span className="font-bold">{existingLoans.length}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* New Loan Eligibility Notice */}
+            {!canApplyNewLoan && (
+              <Card className="banking-card-elevated border-warning/50">
+                <CardContent className="px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        <BilingualText 
+                          english="New Loan Not Available" 
+                          bengali="নতুন ঋণ উপলব্ধ নয়" 
+                        />
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <BilingualText 
+                          english="You are not eligible for a new loan at this time. Please contact the bank for more information." 
+                          bengali="আপনি এই মুহূর্তে নতুন ঋণের জন্য যোগ্য নন। আরও তথ্যের জন্য ব্যাংকে যোগাযোগ করুন।" 
+                        />
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

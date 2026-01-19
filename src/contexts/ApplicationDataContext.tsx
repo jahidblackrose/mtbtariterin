@@ -123,6 +123,22 @@ export interface DocumentData {
   status?: string;
 }
 
+// Opened Loan Account Data (for Dashboard - existing loans)
+export interface OpenedLoanAccount {
+  loanacno: string;
+  productname: string;
+  accountstatus: string;
+  loanamount: string;
+  outstanding: string;
+  paidinstallments: string;
+  remaininginstallments: string;
+}
+
+export interface DashboardData {
+  existingLoans: OpenedLoanAccount[];
+  canApplyNewLoan: boolean;
+}
+
 // Complete Application Data
 export interface ApplicationDataState {
   applicationId: string;
@@ -136,6 +152,7 @@ export interface ApplicationDataState {
   acMasterData: AcMasterData | null;
   liabilityData: LiabilityData[];
   documentData: DocumentData[];
+  dashboardData: DashboardData | null;
   isDataLoaded: boolean;
   isReadOnly: boolean;
   hasPersonalData: boolean;
@@ -144,6 +161,7 @@ export interface ApplicationDataState {
   hasAcMasterData: boolean;
   hasLiabilityData: boolean;
   hasDocumentData: boolean;
+  hasExistingLoans: boolean;
 }
 
 interface ApplicationDataContextType {
@@ -157,6 +175,7 @@ interface ApplicationDataContextType {
     profileStatus: string;
     loanAcNo?: string;
   }) => void;
+  setDashboardData: (existingLoans: OpenedLoanAccount[], canApplyNewLoan: boolean) => void;
 }
 
 const defaultState: ApplicationDataState = {
@@ -171,6 +190,7 @@ const defaultState: ApplicationDataState = {
   acMasterData: null,
   liabilityData: [],
   documentData: [],
+  dashboardData: null,
   isDataLoaded: false,
   isReadOnly: true,
   hasPersonalData: false,
@@ -179,6 +199,7 @@ const defaultState: ApplicationDataState = {
   hasAcMasterData: false,
   hasLiabilityData: false,
   hasDocumentData: false,
+  hasExistingLoans: false,
 };
 
 const ApplicationDataContext = createContext<ApplicationDataContextType | undefined>(undefined);
@@ -274,6 +295,21 @@ export const ApplicationDataProvider: React.FC<{ children: ReactNode }> = ({ chi
     setApplicationDataState(newState);
   }, []);
 
+  /**
+   * Sets dashboard data for users with existing loans
+   */
+  const setDashboardData = useCallback((existingLoans: OpenedLoanAccount[], canApplyNewLoan: boolean) => {
+    setApplicationDataState(prev => ({
+      ...prev,
+      dashboardData: {
+        existingLoans,
+        canApplyNewLoan,
+      },
+      hasExistingLoans: existingLoans.length > 0,
+      isDataLoaded: true,
+    }));
+  }, []);
+
   return (
     <ApplicationDataContext.Provider
       value={{
@@ -281,6 +317,7 @@ export const ApplicationDataProvider: React.FC<{ children: ReactNode }> = ({ chi
         setApplicationData,
         clearApplicationData,
         mapFetchAllDataResponse,
+        setDashboardData,
       }}
     >
       {children}

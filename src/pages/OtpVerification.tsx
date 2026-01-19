@@ -24,7 +24,7 @@ const OtpVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { timeRemaining, isExpired, formattedTime, resetTimer } = useOtpTimer(120);
-  const { mapFetchAllDataResponse } = useApplicationData();
+  const { mapFetchAllDataResponse, setDashboardData } = useApplicationData();
 
   const { accountNumber, mobileNumber } = location.state || {};
 
@@ -75,6 +75,48 @@ const OtpVerification = () => {
         loginid: session.loginId || "",
       });
 
+      // CONDITION A: Status -666 - Existing Loan Detected
+      if (otpResponse.status === "-666") {
+        setVerificationStatus('fetching');
+        
+        const customerId = otpResponse.customernumber || session.customerId || "";
+        
+        // Update session with available data
+        updateSessionContext({
+          customerId,
+          cif: customerId,
+        });
+
+        // Call getopenedloanaccountdata API
+        const loanDataResponse = await loanApplicationApi.getOpenedLoanAccountData({
+          loginid: session.loginId || "",
+          cif: customerId,
+          mobilenumber: mobileNumber || session.mobileNumber || "",
+        });
+
+        if (isSuccessResponse(loanDataResponse)) {
+          // Store existing loans in context
+          const canApplyNew = loanDataResponse.newaccountopen === 1;
+          setDashboardData(loanDataResponse.dataList || [], canApplyNew);
+
+          setVerificationStatus('success');
+          
+          toast({
+            title: "OTP Verified",
+            description: "Redirecting to your loan dashboard...",
+          });
+
+          // Navigate to Dashboard for existing loan users
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 1500);
+        } else {
+          throw new Error(loanDataResponse.message || "Failed to fetch loan account data");
+        }
+        return;
+      }
+
+      // CONDITION B: Status 200 - Eligible for Application
       if (isSuccessResponse(otpResponse)) {
         setVerificationStatus('fetching');
         
@@ -93,7 +135,9 @@ const OtpVerification = () => {
         // Fetch all application data
         const fetchResponse = await loanApplicationApi.fetchAllData({
           applicationid: applicationId,
-          cif: customerId,
+          cif: "",
+          apicode: "",
+          modulename: "",
         });
 
         if (isSuccessResponse(fetchResponse)) {
@@ -114,6 +158,7 @@ const OtpVerification = () => {
           description: "Login successful. Loading your application...",
         });
 
+        // Navigate to loan application for eligible users
         setTimeout(() => {
           navigate("/loan-application");
         }, 1500);
@@ -130,7 +175,7 @@ const OtpVerification = () => {
       });
       setOtp("");
     }
-  }, [mobileNumber, navigate, mapFetchAllDataResponse]);
+  }, [mobileNumber, navigate, mapFetchAllDataResponse, setDashboardData]);
 
   const handleOtpChange = (value: string) => {
     setOtp(value);
@@ -336,7 +381,7 @@ const OtpVerification = () => {
               {verificationStatus === 'fetching' && (
                 <div className="flex items-center justify-center gap-2 text-primary animate-fade-in">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <BilingualText english="Loading your application..." bengali="আপনার আবেদন লোড হচ্ছে..." />
+                  <BilingualText english="Loading your data..." bengali="আপনার তথ্য লোড হচ্ছে..." />
                 </div>
               )}
 
