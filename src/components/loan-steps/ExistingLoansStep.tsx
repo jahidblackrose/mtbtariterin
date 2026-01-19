@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Loader2, Plus, Trash2, Lock } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import {
   Select,
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 interface ExistingLoansStepProps {
   onNext: (data: any) => void;
   data: any;
+  isReadOnly?: boolean;
 }
 
 interface LiabilityFormData {
@@ -55,16 +56,22 @@ const loanTypes = [
   { code: "OD", name: "Overdraft" },
 ];
 
-export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
+export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: ExistingLoansStepProps) => {
+  // Check if liability data has status 608 (Not Applicable)
+  const hasLiabilityStatus608 = data.liabilityStatus === "608";
+  
   const [formData, setFormData] = useState({
     hasExistingLoans: data.hasExistingLoans || false,
-    notApplicable: data.notApplicable || false,
+    notApplicable: hasLiabilityStatus608 || data.notApplicable || false,
     existingLoans: data.existingLoans || []
   });
 
   // Liability form state
   const [liabilityForm, setLiabilityForm] = useState<LiabilityFormData>(defaultLiabilityForm);
-  const [liabilities, setLiabilities] = useState<LiabilityData[]>([]);
+  const [liabilities, setLiabilities] = useState<LiabilityData[]>(
+    // Pre-populate liabilities from data if available
+    data.existingLoans || []
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Master data state
@@ -76,8 +83,10 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Load banks on mount
+  // Load banks on mount (only if not read-only)
   useEffect(() => {
+    if (isReadOnly) return;
+    
     const loadBanks = async () => {
       setLoadingBanks(true);
       try {
@@ -93,7 +102,7 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
       }
     };
     loadBanks();
-  }, []);
+  }, [isReadOnly]);
 
   // Load branches when bank changes
   const loadBranches = async (bankCode: string) => {
@@ -193,40 +202,58 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
             <BilingualText english="Other Bank Liability" bengali="অন্য ব্যাংকের দায়" />
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            <BilingualText 
-              english="Please provide details if you have any loans you have taken from others banks" 
-              bengali="অন্য ব্যাংক থেকে আপনার কোনো ঋণ থাকলে বিস্তারিত প্রদান করুন" 
-            />
+            {isReadOnly ? (
+              <BilingualText 
+                english="Your existing liabilities from bank records" 
+                bengali="ব্যাংক রেকর্ড থেকে আপনার বিদ্যমান দায়" 
+              />
+            ) : (
+              <BilingualText 
+                english="Please provide details if you have any loans you have taken from others banks" 
+                bengali="অন্য ব্যাংক থেকে আপনার কোনো ঋণ থাকলে বিস্তারিত প্রদান করুন" 
+              />
+            )}
           </p>
         </div>
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary ml-4 flex-shrink-0">
-          <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </div>
+        {isReadOnly ? (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded ml-4 flex-shrink-0">
+            <Lock className="w-3 h-3" />
+            <span>Read-only</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary ml-4 flex-shrink-0">
+            <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        )}
       </div>
 
-      {/* Not Applicable Checkbox */}
-      <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg">
-        <Checkbox
-          id="notApplicable"
-          checked={formData.notApplicable}
-          onCheckedChange={(checked) => setFormData(prev => ({ 
-            ...prev, 
-            notApplicable: checked as boolean 
-          }))}
-        />
-        <label htmlFor="notApplicable" className="text-sm font-medium cursor-pointer">
-          <BilingualText 
-            english="Not Applicable" 
-            bengali="প্রযোজ্য নয়" 
+      {/* Not Applicable Checkbox - Only show if not read-only, or if it's checked */}
+      {(formData.notApplicable || !isReadOnly) && (
+        <div className="flex items-center space-x-2 p-3 bg-muted/30 rounded-lg">
+          <Checkbox
+            id="notApplicable"
+            checked={formData.notApplicable}
+            disabled={isReadOnly}
+            onCheckedChange={(checked) => !isReadOnly && setFormData(prev => ({ 
+              ...prev, 
+              notApplicable: checked as boolean 
+            }))}
           />
-        </label>
-      </div>
+          <label htmlFor="notApplicable" className={`text-sm font-medium ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+            <BilingualText 
+              english="Not Applicable" 
+              bengali="প্রযোজ্য নয়" 
+            />
+          </label>
+        </div>
+      )}
 
       {!formData.notApplicable && (
         <>
-          {/* Liability Form */}
+          {/* Liability Form - Only show if not read-only */}
+          {!isReadOnly && (
           <div className="bg-secondary/20 p-4 rounded-lg space-y-4">
             {/* Row 1: Loan Type, Bank Name, Branch Name, District */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -337,12 +364,13 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
               </Button>
             </div>
           </div>
+          )}
 
-          {/* Liabilities List */}
+          {/* Liabilities List - Show in read-only mode with prefilled data or in edit mode */}
           {liabilities.length > 0 && (
             <div className="space-y-4">
               <h4 className="font-medium text-primary">
-                <BilingualText english="Added Liabilities" bengali="যোগ করা দায়" />
+                <BilingualText english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"} bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"} />
               </h4>
               
               {liabilities.map((liability) => (
@@ -357,14 +385,16 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
                         {liability.branchname}
                       </p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(liability.liabilityid)}
-                      className="text-destructive hover:text-destructive/90"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {!isReadOnly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(liability.liabilityid)}
+                        className="text-destructive hover:text-destructive/90"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-3 gap-4 text-sm">
@@ -383,6 +413,16 @@ export const ExistingLoansStep = ({ onNext, data }: ExistingLoansStepProps) => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Show "No Liabilities" message in read-only mode when empty */}
+          {isReadOnly && liabilities.length === 0 && !formData.notApplicable && (
+            <div className="p-4 bg-muted/30 rounded-lg text-center text-muted-foreground">
+              <BilingualText 
+                english="No existing bank liabilities found." 
+                bengali="কোনো বিদ্যমান ব্যাংক দায় পাওয়া যায়নি।" 
+              />
             </div>
           )}
         </>

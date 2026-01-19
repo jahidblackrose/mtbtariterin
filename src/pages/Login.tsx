@@ -11,13 +11,13 @@ import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLoginConfig, useTheme, ThemeName } from "@/contexts/ThemeContext";
 import { 
-  authService, 
-  otpService, 
   ApiError, 
   ERROR_MESSAGES,
   validateMobileNumber,
   validateAccountNumber,
 } from "@/services/api";
+import { loanApplicationApi } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
 const ThemeSelector = () => {
@@ -188,47 +188,46 @@ const Login = () => {
     setValidationError("");
 
     try {
-      const authResponse = await authService.login({
-        accountNumber: loginType === "account" ? accountNumber : undefined,
-        mobileNumber: loginType === "mobile" ? mobileNumber : undefined,
+      // Call validatestafforpayroll API as per Postman collection
+      const response = await loanApplicationApi.validateCustomer({
+        accountnumber: loginType === "account" ? accountNumber : "",
+        mobilenumber: loginType === "mobile" ? mobileNumber : accountNumber,
+        employeeid: "",
+        payrollcode: "NA",
       });
 
-      if (authResponse.success) {
-        const otpResponse = await otpService.sendOtp({
-          accountNumber: loginType === "account" ? accountNumber : undefined,
-          mobileNumber: loginType === "mobile" ? mobileNumber : undefined,
-          purpose: 'login',
+      if (isSuccessResponse(response)) {
+        // OTP sent successfully, session context already updated by API
+        const maskedNumber = response.mobilenumber 
+          ? `***${response.mobilenumber.slice(-4)}`
+          : "your registered number";
+
+        toast({
+          title: "OTP Sent",
+          description: `Verification code sent to ${maskedNumber}`,
         });
 
-        if (otpResponse.success) {
-          toast({
-            title: "OTP Sent",
-            description: `Verification code sent to ${otpResponse.data?.maskedNumber || "your registered number"}`,
-          });
-
-          navigate("/otp-verification", { 
-            state: { 
-              accountNumber: loginType === "account" ? accountNumber : "", 
-              mobileNumber: loginType === "mobile" ? mobileNumber : "" 
-            } 
-          });
-        }
-      }
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setValidationError(ERROR_MESSAGES[error.code] || error.message);
-        toast({
-          title: "Login Failed",
-          description: ERROR_MESSAGES[error.code] || error.message,
-          variant: "destructive",
+        // Navigate to OTP verification with stored session data
+        navigate("/otp-verification", { 
+          state: { 
+            accountNumber: response.accountnumber || accountNumber || "", 
+            mobileNumber: response.mobilenumber || mobileNumber || "",
+            otpref: response.otpref,
+            regiref: response.regiref,
+            loginid: response.loginid,
+          } 
         });
       } else {
-        toast({
-          title: "Error",
-          description: ERROR_MESSAGES.NETWORK_ERROR,
-          variant: "destructive",
-        });
+        throw new Error(response.message || "Registration failed");
       }
+    } catch (error: any) {
+      const errorMessage = error.message || ERROR_MESSAGES.NETWORK_ERROR;
+      setValidationError(errorMessage);
+      toast({
+        title: "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
