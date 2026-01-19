@@ -498,86 +498,57 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
               >
                 <SelectTrigger className="bg-secondary/30 border-secondary">
                   <SelectValue placeholder="-- Select Loan Type --" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50">
-                    {loanTypes.map((type) => (
-                      <SelectItem key={type.code} value={type.code}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50">
+                  {loanTypes.map((type) => (
+                    <SelectItem key={type.code} value={type.code}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
+            {/* Amount Fields */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs font-medium">Bank Name</Label>
-                <Select
-                  value={liabilityForm.bankCode}
-                  onValueChange={handleBankChange}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    {loadingBanks ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder="--Select Bank Name--" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
-                    {banks.map((bank) => (
-                      <SelectItem key={bank.bankcode} value={bank.bankcode}>
-                        {bank.bankname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-medium">
+                  <BilingualText english="Loan Amount *" bengali="ঋণের পরিমাণ *" />
+                </Label>
+                <Input
+                  type="number"
+                  value={liabilityForm.loanAmount}
+                  onChange={(e) => handleInputChange("loanAmount", e.target.value)}
+                  placeholder="0"
+                  className="bg-secondary/30 border-secondary"
+                />
               </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  <BilingualText english="Outstanding" bengali="বকেয়া" />
+                </Label>
+                <Input
+                  type="number"
+                  value={liabilityForm.outstanding}
+                  onChange={(e) => handleInputChange("outstanding", e.target.value)}
+                  placeholder="0"
+                  className="bg-secondary/30 border-secondary"
+                />
+              </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Branch Name</Label>
-                <Select
-                  value={liabilityForm.branchCode}
-                  onValueChange={handleBranchChange}
-                  disabled={!liabilityForm.bankCode}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    {loadingBranches ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder={liabilityForm.bankCode ? "--Select Branch Name--" : "Select Bank first"} />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
-                    {branches.map((branch) => (
-                      <SelectItem key={branch.branchcode} value={branch.branchcode}>
-                        {branch.branchname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">District</Label>
-                <Select
-                  value={liabilityForm.district}
-                  onValueChange={(value) => handleInputChange("district", value)}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    <SelectValue placeholder="-- Select District --" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50">
-                    <SelectItem value="dhaka">Dhaka</SelectItem>
-                    <SelectItem value="chittagong">Chittagong</SelectItem>
-                    <SelectItem value="sylhet">Sylhet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* EMI */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">
+                <BilingualText english="Monthly EMI" bengali="মাসিক কিস্তি" />
+              </Label>
+              <Input
+                type="number"
+                value={liabilityForm.emi}
+                onChange={(e) => handleInputChange("emi", e.target.value)}
+                placeholder="0"
+                className="bg-secondary/30 border-secondary"
+              />
             </div>
 
             {/* Action Buttons */}
@@ -586,24 +557,27 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                 type="button"
                 onClick={handleAddOrUpdate}
                 disabled={submitting}
-                className="bg-primary hover:bg-primary/90"
+                className="w-full"
               >
                 {submitting ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <Plus className="w-4 h-4 mr-2" />
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
                 )}
-                {editingId ? "UPDATE" : "ADD/UPDATE"}
+                {editingId ? "Update Liability" : "Save Liability"}
               </Button>
             </div>
           </div>
           )}
 
-          {/* Liabilities List - Show in read-only mode with prefilled data or in edit mode */}
+          {/* Liabilities List */}
           {liabilities.length > 0 && (
             <div className="space-y-4">
               <h4 className="font-medium text-primary">
-                <BilingualText english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"} bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"} />
+                <BilingualText 
+                  english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"} 
+                  bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"} 
+                />
               </h4>
               
               {liabilities.map((liability) => (
@@ -623,9 +597,14 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(liability.liabilityid)}
+                        disabled={deletingId === liability.liabilityid}
                         className="text-destructive hover:text-destructive/90"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deletingId === liability.liabilityid ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </Button>
                     )}
                   </div>
@@ -673,8 +652,8 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
             </p>
             <p className="text-muted-foreground">
               <BilingualText 
-                english="Your existing loan information helps us assess your eligibility and determine the best loan terms for you. All information will be verified through credit bureau reports." 
-                bengali="আপনার বিদ্যমান ঋণের তথ্য আমাদের আপনার যোগ্যতা মূল্যায়ন এবং আপনার জন্য সর্বোত্তম ঋণের শর্তাবলী নির্ধারণ করতে সহায়তা করে। সমস্ত তথ্য ক্রেডিট ব্যুরো রিপোর্টের মাধ্যমে যাচাই করা হবে।" 
+                english="Your existing loan information helps us assess your eligibility and determine the best loan terms for you." 
+                bengali="আপনার বিদ্যমান ঋণের তথ্য আমাদের আপনার যোগ্যতা মূল্যায়ন এবং আপনার জন্য সর্বোত্তম ঋণের শর্তাবলী নির্ধারণ করতে সহায়তা করে।" 
               />
             </p>
           </div>
