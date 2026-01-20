@@ -478,7 +478,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepPro
               onChange={(e) => handleAddressChange(sectionKey, "addressLine1", e.target.value.slice(0, 160))}
               placeholder="House/Flat, Road, Area"
               maxLength={160}
-              className="bg-muted/30"
+              className="bg-background border-input"
             />
           </div>
           
@@ -493,7 +493,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepPro
               onChange={(e) => handleAddressChange(sectionKey, "addressLine2", e.target.value.slice(0, 60))}
               placeholder="Additional address details"
               maxLength={60}
-              className="bg-muted/30"
+              className="bg-background border-input"
             />
           </div>
 
@@ -503,8 +503,9 @@ export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepPro
               <Label className="text-xs font-medium text-foreground">Country</Label>
               <Input
                 value={sectionData.country}
-                className="bg-muted/30"
-                readOnly
+                onChange={(e) => handleAddressChange(sectionKey, "country", e.target.value)}
+                placeholder="Country"
+                className="bg-background border-input"
               />
             </div>
             
@@ -514,7 +515,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepPro
                 value={sectionData.district}
                 onValueChange={(value) => handleDistrictChange(sectionKey, value)}
               >
-                <SelectTrigger className="bg-muted/30">
+                <SelectTrigger className="bg-background border-input">
                   {loadingDistricts ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -544,7 +545,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepPro
                 onValueChange={(value) => handleThanaChange(sectionKey, value)}
                 disabled={!sectionData.district}
               >
-                <SelectTrigger className="bg-muted/30">
+                <SelectTrigger className="bg-background border-input">
                   {loadingThana ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -571,7 +572,7 @@ export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepPro
                 onValueChange={(value) => handlePostCodeChange(sectionKey, value)}
                 disabled={!sectionData.thana}
               >
-                <SelectTrigger className="bg-muted/30">
+                <SelectTrigger className="bg-background border-input">
                   {loadingPostOffice ? (
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
