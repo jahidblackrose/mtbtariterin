@@ -401,9 +401,9 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
       
       {/* Show Not Applicable status in read-only mode */}
       {isReadOnly && formData.notApplicable && (
-        <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
-          <CheckCircle2 className="w-5 h-5 text-success" />
-          <span className="text-sm font-medium text-success">
+        <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+          <CheckCircle2 className="w-5 h-5 text-primary" />
+          <span className="text-sm font-medium text-foreground">
             <BilingualText 
               english="No other bank liability declared" 
               bengali="অন্য কোনো ব্যাংক দায় ঘোষণা করা হয়নি" 
@@ -553,7 +553,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
           {/* Liabilities List */}
           {liabilities.length > 0 && (
             <div className="space-y-3">
-              <h4 className="font-medium text-sm text-primary">
+              <h4 className="font-medium text-sm text-foreground">
                 <BilingualText 
                   english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"} 
                   bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"} 
