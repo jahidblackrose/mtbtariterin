@@ -187,7 +187,7 @@ const LoanApplication = () => {
       case 2:
         return <AddressStep {...stepProps} />;
       case 3:
-        return <ExistingLoansStep {...stepProps} />;
+        return <ExistingLoansStep onNext={handleNext} data={prefilledData} isReadOnly={false} />;
       case 4:
         return <LoanDetailsStep {...stepProps} />;
       case 5:
