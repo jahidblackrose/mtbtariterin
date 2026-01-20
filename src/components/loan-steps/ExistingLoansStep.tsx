@@ -67,7 +67,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
   const [liabilities, setLiabilities] = useState<LiabilityData[]>(
     data.existingLoans || []
   );
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(true);
 
   // Master data state
   const [banks, setBanks] = useState<BankData[]>([]);
@@ -414,36 +414,13 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
 
       {!formData.notApplicable && (
         <>
-          {/* Add New Button - Show when not adding and has no form open */}
-          {!showAddForm && !isReadOnly && (
-            <Button
-              variant="outline"
-              onClick={() => setShowAddForm(true)}
-              className="w-full border-dashed"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              <BilingualText english="Add Bank Liability" bengali="ব্যাংক দায় যোগ করুন" />
-            </Button>
-          )}
-          
-          {/* Liability Form - Only show when adding */}
-          {showAddForm && !isReadOnly && (
-            <div className="bg-muted/30 p-4 rounded-lg space-y-4 border border-border/50">
-              <div className="flex items-center justify-between pb-2 border-b border-border/30">
+          {/* Liability Form - Always show when not read-only */}
+          {!isReadOnly && (
+            <div className="bg-muted/30 p-4 rounded-xl space-y-4 border border-border/50">
+              <div className="pb-2 border-b border-border/30">
                 <h4 className="font-medium text-sm">
-                  <BilingualText english="Add New Liability" bengali="নতুন দায় যোগ করুন" />
+                  <BilingualText english="Add Bank Liability" bengali="ব্যাংক দায় যোগ করুন" />
                 </h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setLiabilityForm(defaultLiabilityForm);
-                    setBranches([]);
-                  }}
-                >
-                  Cancel
-                </Button>
               </div>
               
               {/* Loan Type */}
