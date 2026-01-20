@@ -201,6 +201,9 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
         branchname: liabilityForm.branchCode, // API expects code in branchname field
         loantype: liabilityForm.loanType,
         loanamount: liabilityForm.loanAmount,
+        liabilitytype: liabilityForm.loanType === "CC" ? "C" as const : "L" as const, // C for Credit Card, L for Loan
+        outstanding: liabilityForm.outstanding || "0",
+        emi: liabilityForm.emi || "0",
         apicode: "",
         modulename: "",
       };
