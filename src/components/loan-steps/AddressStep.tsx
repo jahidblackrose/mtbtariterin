@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Loader2, Lock } from "lucide-react";
+import { MapPin, Loader2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import {
   Select,
@@ -51,7 +51,7 @@ const defaultAddressSection: AddressSectionData = {
   postOfficeName: "",
 };
 
-export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProps) => {
+export const AddressStep = ({ onNext, data, isReadOnly = false }: AddressStepProps) => {
   const { applicationData } = useApplicationData();
   const contactData = applicationData.contactData;
 
@@ -233,9 +233,8 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     districtCode: string,
     section: 'present' | 'permanent' | 'professional'
   ) => {
-    if (isReadOnly) return;
     await loadThanasForSection(districtCode, section);
-  }, [isReadOnly, loadThanasForSection]);
+  }, [loadThanasForSection]);
 
   // Load post offices when thana changes for each section
   const loadPostOffices = useCallback(async (
@@ -243,8 +242,6 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     thanaCode: string,
     section: 'present' | 'permanent' | 'professional'
   ) => {
-    if (isReadOnly) return;
-    
     const setLoading = section === 'present' ? setLoadingPresentPostOffice
       : section === 'permanent' ? setLoadingPermanentPostOffice
       : setLoadingProfessionalPostOffice;
@@ -265,12 +262,10 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     } finally {
       setLoading(false);
     }
-  }, [isReadOnly]);
+  }, []);
 
   // Save address data via API
   const saveAddressData = useCallback(async () => {
-    if (isReadOnly) return true;
-    
     setIsSaving(true);
     try {
       const session = getSessionContext();
@@ -318,20 +313,15 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     } finally {
       setIsSaving(false);
     }
-  }, [isReadOnly, formData]);
+  }, [formData]);
 
   // Handle next - save before proceeding
   const handleNext = useCallback(async () => {
-    if (isReadOnly) {
-      onNext(formData);
-      return;
-    }
-    
     const saved = await saveAddressData();
     if (saved) {
       onNext(formData);
     }
-  }, [isReadOnly, formData, onNext, saveAddressData]);
+  }, [formData, onNext, saveAddressData]);
 
   // Expose handleNext for parent component
   useEffect(() => {
@@ -347,7 +337,6 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     field: keyof AddressSectionData,
     value: string
   ) => {
-    if (isReadOnly) return;
     setFormData(prev => ({
       ...prev,
       [section]: {
@@ -361,7 +350,6 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     section: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
     districtCode: string
   ) => {
-    if (isReadOnly) return;
     const selectedDistrict = districts.find(d => d.districtcode === districtCode);
     
     setFormData(prev => ({
@@ -397,7 +385,6 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     section: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
     thanaCode: string
   ) => {
-    if (isReadOnly) return;
     const sectionKey = section.replace('Address', '') as 'present' | 'permanent' | 'professional';
     
     const thanas = section === 'presentAddress' ? presentThanas
@@ -434,7 +421,6 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     section: 'presentAddress' | 'permanentAddress' | 'professionalAddress',
     postCode: string
   ) => {
-    if (isReadOnly) return;
     const postOffices = section === 'presentAddress' ? presentPostOffices
       : section === 'permanentAddress' ? permanentPostOffices
       : professionalPostOffices;
@@ -470,166 +456,139 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
     
     return (
       <div className="space-y-3">
-        {/* Section Header */}
-        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-t-lg font-semibold flex items-center justify-between">
-          <BilingualText english={title.english} bengali={title.bengali} />
-          {isReadOnly && (
-            <div className="flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded">
-              <Lock className="w-3 h-3" />
-              <span>Read-only</span>
-            </div>
-          )}
+        {/* Section Header - matching PersonalInfoStep style */}
+        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+          <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-sm">
+              <BilingualText english={title.english} bengali={title.bengali} />
+            </h3>
+          </div>
         </div>
         
-        <div className="bg-secondary/20 p-4 rounded-b-lg space-y-4">
+        <div className="space-y-3 px-1">
           {/* Row 1: Address Line 1 - Full Width */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">
               Address Line 1
               <span className="text-muted-foreground text-xs ml-1">(160 Characters)</span>
             </Label>
             <Input
               value={sectionData.addressLine1}
               onChange={(e) => handleAddressChange(sectionKey, "addressLine1", e.target.value.slice(0, 160))}
-              placeholder={isReadOnly ? "-" : "House/Flat, Road, Area"}
+              placeholder="House/Flat, Road, Area"
               maxLength={160}
-              className="bg-secondary/30 border-secondary"
-              readOnly={isReadOnly}
+              className="bg-muted/30"
             />
           </div>
           
           {/* Row 2: Address Line 2 - Full Width */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">
               Address Line 2
               <span className="text-muted-foreground text-xs ml-1">(60 Characters)</span>
             </Label>
             <Input
               value={sectionData.addressLine2}
               onChange={(e) => handleAddressChange(sectionKey, "addressLine2", e.target.value.slice(0, 60))}
-              placeholder={isReadOnly ? "-" : "Additional address details"}
+              placeholder="Additional address details"
               maxLength={60}
-              className="bg-secondary/30 border-secondary"
-              readOnly={isReadOnly}
+              className="bg-muted/30"
             />
           </div>
 
           {/* Row 3: Country (Half) + District (Half) */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">Country</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Country</Label>
               <Input
                 value={sectionData.country}
-                className="bg-secondary/30 border-secondary"
+                className="bg-muted/30"
                 readOnly
               />
             </div>
             
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">District</Label>
-              {isReadOnly ? (
-                <Input
-                  value={getDistrictDisplayName(sectionData.district, sectionData.districtName)}
-                  className="bg-secondary/30 border-secondary"
-                  readOnly
-                />
-              ) : (
-                <Select
-                  value={sectionData.district}
-                  onValueChange={(value) => handleDistrictChange(sectionKey, value)}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    {loadingDistricts ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder="-- Select District --" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
-                    {districts.map((district) => (
-                      <SelectItem key={district.districtcode} value={district.districtcode}>
-                        {district.districtname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">District</Label>
+              <Select
+                value={sectionData.district}
+                onValueChange={(value) => handleDistrictChange(sectionKey, value)}
+              >
+                <SelectTrigger className="bg-muted/30">
+                  {loadingDistricts ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="-- Select District --" />
+                  )}
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50 max-h-60">
+                  {districts.map((district) => (
+                    <SelectItem key={district.districtcode} value={district.districtcode}>
+                      {district.districtname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Row 4: Thana (Half) + Post Code (Half) */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">Thana</Label>
-              {isReadOnly ? (
-                <Input
-                  value={sectionData.thanaName || sectionData.thana || "-"}
-                  className="bg-secondary/30 border-secondary"
-                  readOnly
-                />
-              ) : (
-                <Select
-                  value={sectionData.thana}
-                  onValueChange={(value) => handleThanaChange(sectionKey, value)}
-                  disabled={!sectionData.district}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    {loadingThana ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder={sectionData.district ? "-- Select Thana --" : "Select District first"} />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
-                    {thanas.map((thana) => (
-                      <SelectItem key={thana.thanacode} value={thana.thanacode}>
-                        {thana.thananame}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Thana</Label>
+              <Select
+                value={sectionData.thana}
+                onValueChange={(value) => handleThanaChange(sectionKey, value)}
+                disabled={!sectionData.district}
+              >
+                <SelectTrigger className="bg-muted/30">
+                  {loadingThana ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder={sectionData.district ? "-- Select Thana --" : "Select District first"} />
+                  )}
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50 max-h-60">
+                  {thanas.map((thana) => (
+                    <SelectItem key={thana.thanacode} value={thana.thanacode}>
+                      {thana.thananame}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">Post Code</Label>
-              {isReadOnly ? (
-                <Input
-                  value={sectionData.postCode || "-"}
-                  className="bg-secondary/30 border-secondary"
-                  readOnly
-                />
-              ) : (
-                <Select
-                  value={sectionData.postCode}
-                  onValueChange={(value) => handlePostCodeChange(sectionKey, value)}
-                  disabled={!sectionData.thana}
-                >
-                  <SelectTrigger className="bg-secondary/30 border-secondary">
-                    {loadingPostOffice ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder={sectionData.thana ? "-- Select Post Code --" : "Select Thana first"} />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
-                    {postOffices.map((po) => (
-                      <SelectItem key={po.postcode} value={po.postcode}>
-                        {po.postcode} - {po.postofficename}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Post Code</Label>
+              <Select
+                value={sectionData.postCode}
+                onValueChange={(value) => handlePostCodeChange(sectionKey, value)}
+                disabled={!sectionData.thana}
+              >
+                <SelectTrigger className="bg-muted/30">
+                  {loadingPostOffice ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder={sectionData.thana ? "-- Select Post Code --" : "Select Thana first"} />
+                  )}
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50 max-h-60">
+                  {postOffices.map((po) => (
+                    <SelectItem key={po.postcode} value={po.postcode}>
+                      {po.postcode} - {po.postofficename}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -638,26 +597,19 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
-        <MapPin className="w-6 h-6 text-primary" />
-        <div className="flex-1">
-          <h3 className="font-semibold">
+    <div className="space-y-4">
+      {/* Header - matching PersonalInfoStep style */}
+      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+        <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-sm">
             <BilingualText english="Address Information" bengali="ঠিকানার তথ্য" />
           </h3>
-          <p className="text-sm text-muted-foreground">
-            {isReadOnly ? (
-              <BilingualText 
-                english="Your address details from bank records" 
-                bengali="ব্যাংক রেকর্ড থেকে আপনার ঠিকানার বিবরণ" 
-              />
-            ) : (
-              <BilingualText 
-                english="Provide your present, permanent, and professional address details" 
-                bengali="আপনার বর্তমান, স্থায়ী এবং পেশাদার ঠিকানার বিবরণ প্রদান করুন" 
-              />
-            )}
+          <p className="text-xs text-muted-foreground">
+            <BilingualText 
+              english="Provide your present, permanent, and professional address details" 
+              bengali="আপনার বর্তমান, স্থায়ী এবং পেশাদার ঠিকানার বিবরণ প্রদান করুন" 
+            />
           </p>
         </div>
       </div>
@@ -702,39 +654,37 @@ export const AddressStep = ({ onNext, data, isReadOnly = true }: AddressStepProp
 
       {/* Preferred Communication Address */}
       <div className="space-y-3">
-        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-t-lg font-semibold flex items-center justify-between">
-          <BilingualText english="Preferred Communication Address" bengali="যোগাযোগের পছন্দের ঠিকানা" />
-          {isReadOnly && (
-            <div className="flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded">
-              <Lock className="w-3 h-3" />
-              <span>Read-only</span>
-            </div>
-          )}
+        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+          <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-sm">
+              <BilingualText english="Preferred Communication Address" bengali="যোগাযোগের পছন্দের ঠিকানা" />
+            </h3>
+          </div>
         </div>
-        <div className="bg-secondary/20 p-4 rounded-b-lg">
+        <div className="space-y-3 px-1">
           <RadioGroup
             value={formData.communicationAddress}
-            onValueChange={(value) => !isReadOnly && setFormData(prev => ({ ...prev, communicationAddress: value }))}
-            disabled={isReadOnly}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, communicationAddress: value }))}
             className="space-y-3"
           >
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-background border border-border/50 hover:border-primary/50 transition-colors">
-              <RadioGroupItem value="present" id="comm-present" disabled={isReadOnly} />
-              <Label htmlFor="comm-present" className={`flex-1 ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+            <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/30 border border-border/50 hover:border-primary/50 transition-colors">
+              <RadioGroupItem value="present" id="comm-present" />
+              <Label htmlFor="comm-present" className="flex-1 cursor-pointer">
                 <BilingualText english="Present Address" bengali="বর্তমান ঠিকানা" />
               </Label>
             </div>
             
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-background border border-border/50 hover:border-primary/50 transition-colors">
-              <RadioGroupItem value="permanent" id="comm-permanent" disabled={isReadOnly} />
-              <Label htmlFor="comm-permanent" className={`flex-1 ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+            <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/30 border border-border/50 hover:border-primary/50 transition-colors">
+              <RadioGroupItem value="permanent" id="comm-permanent" />
+              <Label htmlFor="comm-permanent" className="flex-1 cursor-pointer">
                 <BilingualText english="Permanent Address" bengali="স্থায়ী ঠিকানা" />
               </Label>
             </div>
             
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-background border border-border/50 hover:border-primary/50 transition-colors">
-              <RadioGroupItem value="professional" id="comm-professional" disabled={isReadOnly} />
-              <Label htmlFor="comm-professional" className={`flex-1 ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}`}>
+            <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/30 border border-border/50 hover:border-primary/50 transition-colors">
+              <RadioGroupItem value="professional" id="comm-professional" />
+              <Label htmlFor="comm-professional" className="flex-1 cursor-pointer">
                 <BilingualText english="Professional Address" bengali="পেশাদার ঠিকানা" />
               </Label>
             </div>
