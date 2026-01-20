@@ -2,18 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2, Plus, Trash2, CheckCircle2, Building2 } from "lucide-react";
+import { AlertCircle, Loader2, Plus, Trash2, Lock, CheckCircle2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { loanApplicationApi, BankData, BranchData, LiabilityData, DistrictData } from "@/services/loanApplicationApi";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { loanApplicationApi, BankData, BranchData, LiabilityData } from "@/services/loanApplicationApi";
 import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
 import { toast } from "sonner";
 
@@ -29,8 +24,9 @@ interface LiabilityFormData {
   bankName: string;
   branchCode: string;
   branchName: string;
-  districtCode: string;
-  districtName: string;
+  loanAmount: string;
+  outstanding: string;
+  emi: string;
 }
 
 const defaultLiabilityForm: LiabilityFormData = {
@@ -39,8 +35,9 @@ const defaultLiabilityForm: LiabilityFormData = {
   bankName: "",
   branchCode: "",
   branchName: "",
-  districtCode: "",
-  districtName: "",
+  loanAmount: "",
+  outstanding: "",
+  emi: "",
 };
 
 const loanTypes = [
@@ -55,30 +52,27 @@ const loanTypes = [
 export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: ExistingLoansStepProps) => {
   // Check if liability data has status 608 (Not Applicable)
   const hasLiabilityStatus608 = data.liabilityStatus === "608";
-  
+
   const [formData, setFormData] = useState({
     hasExistingLoans: data.hasExistingLoans || false,
     notApplicable: hasLiabilityStatus608 || data.notApplicable || false,
-    existingLoans: data.existingLoans || []
+    existingLoans: data.existingLoans || [],
   });
 
   // Liability form state
   const [liabilityForm, setLiabilityForm] = useState<LiabilityFormData>(defaultLiabilityForm);
-  const [liabilities, setLiabilities] = useState<LiabilityData[]>(
-    data.existingLoans || []
-  );
-  const [showAddForm, setShowAddForm] = useState(true);
+  const [liabilities, setLiabilities] = useState<LiabilityData[]>(data.existingLoans || []);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   // Master data state
   const [banks, setBanks] = useState<BankData[]>([]);
   const [branches, setBranches] = useState<BranchData[]>([]);
-  const [districts, setDistricts] = useState<DistrictData[]>([]);
 
   // Loading states
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingBanks, setLoadingBanks] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [completingNoLiability, setCompletingNoLiability] = useState(false);
@@ -90,19 +84,19 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
       try {
         const session = getSessionContext();
         const response = await loanApplicationApi.getOtherBankLiability(session.applicationId || "");
-        
+
         if (isSuccessResponse(response) && response.dataList && response.dataList.length > 0) {
           // Filter out "No record found" entries
           const validLiabilities = response.dataList.filter(
-            (item: any) => item.status !== "608" && item.status !== "No record found"
+            (item: any) => item.status !== "608" && item.status !== "No record found",
           );
           setLiabilities(validLiabilities);
-          setFormData(prev => ({ ...prev, notApplicable: false }));
+          setFormData((prev) => ({ ...prev, notApplicable: false }));
         } else {
           setLiabilities([]);
           // Check if status 608 means no record
           if (hasLiabilityStatus608) {
-            setFormData(prev => ({ ...prev, notApplicable: true }));
+            setFormData((prev) => ({ ...prev, notApplicable: true }));
           }
         }
       } catch (error) {
@@ -128,7 +122,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
   useEffect(() => {
     const loadBanks = async () => {
       if (!showAddForm || banks.length > 0 || isReadOnly) return;
-      
+
       setLoadingBanks(true);
       try {
         const response = await loanApplicationApi.getBankList();
@@ -145,31 +139,10 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     loadBanks();
   }, [showAddForm, banks.length, isReadOnly]);
 
-  // Load districts when showing add form
-  useEffect(() => {
-    const loadDistricts = async () => {
-      if (!showAddForm || districts.length > 0 || isReadOnly) return;
-      
-      setLoadingDistricts(true);
-      try {
-        const response = await loanApplicationApi.getDistrictList();
-        if (isSuccessResponse(response) && response.dataList) {
-          setDistricts(response.dataList);
-        }
-      } catch (error) {
-        console.error("Failed to load districts:", error);
-        toast.error("Failed to load district list");
-      } finally {
-        setLoadingDistricts(false);
-      }
-    };
-    loadDistricts();
-  }, [showAddForm, districts.length, isReadOnly]);
-
   // Load branches when bank changes
   const loadBranches = useCallback(async (bankCode: string) => {
     if (!bankCode) return;
-    
+
     setLoadingBranches(true);
     setBranches([]);
     try {
@@ -185,84 +158,72 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     }
   }, []);
 
-  const handleLoanTypeChange = (loanType: string) => {
-    setLiabilityForm(prev => ({
-      ...prev,
-      loanType
-    }));
-  };
-
   const handleBankChange = (bankCode: string) => {
-    const selectedBank = banks.find(b => b.bankcode === bankCode);
-    setLiabilityForm(prev => ({
+    const selectedBank = banks.find((b) => b.bankcode === bankCode);
+    setLiabilityForm((prev) => ({
       ...prev,
       bankCode,
       bankName: selectedBank?.bankname || "",
       branchCode: "",
-      branchName: ""
+      branchName: "",
     }));
     loadBranches(bankCode);
   };
 
   const handleBranchChange = (branchCode: string) => {
-    const selectedBranch = branches.find(b => b.branchcode === branchCode);
-    setLiabilityForm(prev => ({
+    const selectedBranch = branches.find((b) => b.branchcode === branchCode);
+    setLiabilityForm((prev) => ({
       ...prev,
       branchCode,
-      branchName: selectedBranch?.branchname || ""
+      branchName: selectedBranch?.branchname || "",
     }));
   };
 
-  const handleDistrictChange = (districtCode: string) => {
-    const selectedDistrict = districts.find(d => d.districtcode === districtCode);
-    setLiabilityForm(prev => ({
-      ...prev,
-      districtCode,
-      districtName: selectedDistrict?.districtname || ""
-    }));
+  const handleInputChange = (field: keyof LiabilityFormData, value: string) => {
+    setLiabilityForm((prev) => ({ ...prev, [field]: value }));
   };
 
   // Save liability via API
   const handleAddOrUpdate = async () => {
-    if (!liabilityForm.loanType || !liabilityForm.bankCode || !liabilityForm.branchCode || !liabilityForm.districtCode) {
-      toast.error("Please fill in all required fields (Loan Type, Bank, Branch, District)");
+    if (!liabilityForm.bankCode || !liabilityForm.branchCode || !liabilityForm.loanType) {
+      toast.error("Please fill in all required fields (Bank, Branch, Loan Type, Amount)");
       return;
     }
 
     setSubmitting(true);
     try {
       const session = getSessionContext();
-      
+
       const payload = {
-        liabilityid: "",
+        liabilityid: editingId || "",
         applicationid: session.applicationId || "",
-        bankname: liabilityForm.bankCode,
-        branchname: liabilityForm.branchCode,
+        bankname: liabilityForm.bankCode, // API expects code in bankname field
+        branchname: liabilityForm.branchCode, // API expects code in branchname field
         loantype: liabilityForm.loanType,
-        loanamount: "0",
-        outstanding: "0",
-        emi: "0",
-        liabilitytype: "L" as const,
+        loanamount: liabilityForm.loanAmount,
+        apicode: "",
+        modulename: "",
       };
 
       const response = await loanApplicationApi.saveOtherBankLiability(payload);
-      
+
       if (isSuccessResponse(response)) {
-        toast.success("Liability added successfully");
-        
+        toast.success(editingId ? "Liability updated successfully" : "Liability added successfully");
+
         // Reload liabilities from API
         const refreshResponse = await loanApplicationApi.getOtherBankLiability(session.applicationId || "");
         if (isSuccessResponse(refreshResponse) && refreshResponse.dataList) {
           const validLiabilities = refreshResponse.dataList.filter(
-            (item: any) => item.status !== "608" && item.status !== "No record found"
+            (item: any) => item.status !== "608" && item.status !== "No record found",
           );
           setLiabilities(validLiabilities);
         }
-        
+
         // Reset form
         setLiabilityForm(defaultLiabilityForm);
         setShowAddForm(false);
         setBranches([]);
+        setEditingId(null);
       } else {
         throw new Error(response.message || "Failed to save liability");
       }
@@ -280,10 +241,10 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     try {
       const session = getSessionContext();
       const response = await loanApplicationApi.deleteOtherBankLiability(liabilityId, session.applicationId || "");
-      
+
       if (isSuccessResponse(response)) {
         toast.success("Liability deleted successfully");
-        setLiabilities(prev => prev.filter(l => l.liabilityid !== liabilityId));
+        setLiabilities((prev) => prev.filter((l) => l.liabilityid !== liabilityId));
       } else {
         throw new Error(response.message || "Failed to delete liability");
       }
@@ -301,7 +262,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     try {
       const session = getSessionContext();
       const response = await loanApplicationApi.saveOtherBankLiabilityComplete(session.applicationId || "");
-      
+
       if (isSuccessResponse(response)) {
         toast.success("Confirmed: No other bank liability");
         onNext({ noLiability: true, liabilities: [] });
@@ -322,7 +283,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     } else {
       onNext({
         ...formData,
-        liabilities
+        liabilities,
       });
     }
   };
@@ -345,94 +306,127 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-        <Building2 className="w-5 h-5 text-primary flex-shrink-0" />
-        <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-sm">
+    <div className="space-y-6">
+      {/* Header Card - Other Bank Liability */}
+      <div className="flex items-start justify-between p-4 bg-card rounded-xl border border-border/50 shadow-sm">
+        <div className="flex-1">
+          <h3 className="font-semibold text-foreground mb-1">
             <BilingualText english="Other Bank Liability" bengali="অন্য ব্যাংকের দায়" />
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {isReadOnly ? (
-              <BilingualText 
-                english="Your existing liabilities from bank records" 
-                bengali="ব্যাংক রেকর্ড থেকে আপনার বিদ্যমান দায়" 
+              <BilingualText
+                english="Your existing liabilities from bank records"
+                bengali="ব্যাংক রেকর্ড থেকে আপনার বিদ্যমান দায়"
               />
             ) : (
-              <BilingualText 
-                english="Please provide details if you have any loans from other banks" 
-                bengali="অন্য ব্যাংক থেকে আপনার কোনো ঋণ থাকলে বিস্তারিত প্রদান করুন" 
+              <BilingualText
+                english="Please provide details if you have any loans you have taken from others banks"
+                bengali="অন্য ব্যাংক থেকে আপনার কোনো ঋণ থাকলে বিস্তারিত প্রদান করুন"
               />
             )}
           </p>
         </div>
+        {isReadOnly ? (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded ml-4 flex-shrink-0">
+            <Lock className="w-3 h-3" />
+            <span>Read-only</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary ml-4 flex-shrink-0">
+            <svg
+              className="w-5 h-5 text-primary"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* No Liability Checkbox - Show only when no liabilities exist and not adding */}
       {liabilities.length === 0 && !showAddForm && !isReadOnly && (
-        <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+        <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-xl border border-border/50">
           <Checkbox
             id="notApplicable"
             checked={formData.notApplicable}
             disabled={isReadOnly || completingNoLiability}
-            onCheckedChange={(checked) => setFormData(prev => ({ 
-              ...prev, 
-              notApplicable: checked as boolean 
-            }))}
+            onCheckedChange={(checked) =>
+              setFormData((prev) => ({
+                ...prev,
+                notApplicable: checked as boolean,
+              }))
+            }
             className="mt-0.5"
           />
           <div className="space-y-1">
             <label htmlFor="notApplicable" className="text-sm font-medium cursor-pointer">
-              <BilingualText 
-                english="Not Applicable" 
-                bengali="প্রযোজ্য নয়" 
+              <BilingualText
+                english="I do not have any other bank liability"
+                bengali="আমার অন্য কোনো ব্যাংকের দায় নেই"
               />
             </label>
             <p className="text-xs text-muted-foreground">
-              <BilingualText 
-                english="Check this if you have no existing loans from other banks" 
-                bengali="অন্য ব্যাংক থেকে কোনো ঋণ না থাকলে এটি চেক করুন" 
+              <BilingualText
+                english="Check this if you have no existing loans from other banks"
+                bengali="অন্য ব্যাংক থেকে কোনো ঋণ না থাকলে এটি চেক করুন"
               />
             </p>
           </div>
         </div>
       )}
-      
+
       {/* Show Not Applicable status in read-only mode */}
       {isReadOnly && formData.notApplicable && (
-        <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
-          <CheckCircle2 className="w-5 h-5 text-primary" />
-          <span className="text-sm font-medium text-foreground">
-            <BilingualText 
-              english="No other bank liability declared" 
-              bengali="অন্য কোনো ব্যাংক দায় ঘোষণা করা হয়নি" 
-            />
+        <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
+          <CheckCircle2 className="w-5 h-5 text-success" />
+          <span className="text-sm font-medium text-success">
+            <BilingualText english="No other bank liability declared" bengali="অন্য কোনো ব্যাংক দায় ঘোষণা করা হয়নি" />
           </span>
         </div>
       )}
 
       {!formData.notApplicable && (
         <>
-          {/* Liability Form - Always show when not read-only */}
-          {!isReadOnly && (
-            <div className="bg-muted/30 p-4 rounded-xl space-y-4 border border-border/50">
-              <div className="pb-2 border-b border-border/30">
+          {/* Add New Button - Show when not adding and has no form open */}
+          {!showAddForm && !isReadOnly && (
+            <Button variant="outline" onClick={() => setShowAddForm(true)} className="w-full border-dashed">
+              <Plus className="w-4 h-4 mr-2" />
+              <BilingualText english="Add Bank Liability" bengali="ব্যাংক দায় যোগ করুন" />
+            </Button>
+          )}
+
+          {/* Liability Form - Only show when adding */}
+          {showAddForm && !isReadOnly && (
+            <div className="p-4 rounded-lg space-y-4 border border-primary/30">
+              <div className="flex items-center justify-between pb-2 border-b border-border/30">
                 <h4 className="font-medium text-sm">
-                  <BilingualText english="Add Bank Liability" bengali="ব্যাংক দায় যোগ করুন" />
+                  <BilingualText english="Add New Liability" bengali="নতুন দায় যোগ করুন" />
                 </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setLiabilityForm(defaultLiabilityForm);
+                    setBranches([]);
+                    setEditingId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
               </div>
-              
+
               {/* Loan Type */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
                   <BilingualText english="Loan Type *" bengali="ঋণের ধরন *" />
                 </Label>
-                <Select
-                  value={liabilityForm.loanType}
-                  onValueChange={handleLoanTypeChange}
-                >
-                  <SelectTrigger className="bg-muted/30">
+                <Select value={liabilityForm.loanType} onValueChange={(value) => handleInputChange("loanType", value)}>
+                  <SelectTrigger>
                     <SelectValue placeholder="-- Select Loan Type --" />
                   </SelectTrigger>
                   <SelectContent className="bg-card z-50">
@@ -446,15 +440,12 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
               </div>
 
               {/* Bank Name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
                   <BilingualText english="Bank Name *" bengali="ব্যাংকের নাম *" />
                 </Label>
-                <Select
-                  value={liabilityForm.bankCode}
-                  onValueChange={handleBankChange}
-                >
-                  <SelectTrigger className="bg-muted/30">
+                <Select value={liabilityForm.bankCode} onValueChange={handleBankChange}>
+                  <SelectTrigger>
                     {loadingBanks ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -475,8 +466,8 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
               </div>
 
               {/* Branch Name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
                   <BilingualText english="Branch Name *" bengali="শাখার নাম *" />
                 </Label>
                 <Select
@@ -484,7 +475,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                   onValueChange={handleBranchChange}
                   disabled={!liabilityForm.bankCode}
                 >
-                  <SelectTrigger className="bg-muted/30">
+                  <SelectTrigger>
                     {loadingBranches ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -503,74 +494,39 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* District */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">
-                  <BilingualText english="District *" bengali="জেলা *" />
-                </Label>
-                <Select
-                  value={liabilityForm.districtCode}
-                  onValueChange={handleDistrictChange}
-                >
-                  <SelectTrigger className="bg-muted/30">
-                    {loadingDistricts ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading districts...</span>
-                      </div>
-                    ) : (
-                      <SelectValue placeholder="-- Select District --" />
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
-                    {districts.map((district) => (
-                      <SelectItem key={district.districtcode} value={district.districtcode}>
-                        {district.districtname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" onClick={handleAddOrUpdate} disabled={submitting} className="w-full">
+                  {submitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                  )}
+                  {editingId ? "Update Liability" : "Save Liability"}
+                </Button>
               </div>
-
-              {/* Action Button */}
-              <Button
-                type="button"
-                onClick={handleAddOrUpdate}
-                disabled={submitting}
-                className="w-full"
-              >
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : (
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                )}
-                Save Liability
-              </Button>
             </div>
           )}
 
           {/* Liabilities List */}
           {liabilities.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm text-foreground">
-                <BilingualText 
-                  english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"} 
-                  bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"} 
+            <div className="space-y-4">
+              <h4 className="font-medium text-primary">
+                <BilingualText
+                  english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"}
+                  bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"}
                 />
               </h4>
-              
+
               {liabilities.map((liability) => (
-                <div key={liability.liabilityid} className="p-3 rounded-lg border bg-muted/30">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                <div key={liability.liabilityid} className="p-4 rounded-lg border bg-card/50">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h5 className="font-semibold text-sm">{liability.bankname}</h5>
-                        <Badge variant="outline" className="text-xs">{liability.loantype}</Badge>
+                        <h5 className="font-semibold">{liability.bankname}</h5>
+                        <Badge variant="outline">{liability.loantype}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {liability.branchname}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{liability.branchname}</p>
                     </div>
                     {!isReadOnly && (
                       <Button
@@ -578,7 +534,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                         size="icon"
                         onClick={() => handleDelete(liability.liabilityid)}
                         disabled={deletingId === liability.liabilityid}
-                        className="text-destructive hover:text-destructive/90 h-8 w-8"
+                        className="text-destructive hover:text-destructive/90"
                       >
                         {deletingId === liability.liabilityid ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -588,17 +544,32 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                       </Button>
                     )}
                   </div>
+
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Loan Amount</p>
+                      <p className="font-medium">৳{parseFloat(liability.loanamount || "0").toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Outstanding</p>
+                      <p className="font-medium">৳{parseFloat(liability.outstanding || "0").toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">EMI</p>
+                      <p className="font-medium">৳{parseFloat(liability.emi || "0").toLocaleString()}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
-          
+
           {/* Show "No Liabilities" message in read-only mode when empty */}
           {isReadOnly && liabilities.length === 0 && !formData.notApplicable && (
             <div className="p-4 bg-muted/30 rounded-lg text-center text-muted-foreground">
-              <BilingualText 
-                english="No existing bank liabilities found." 
-                bengali="কোনো বিদ্যমান ব্যাংক দায় পাওয়া যায়নি।" 
+              <BilingualText
+                english="No existing bank liabilities found."
+                bengali="কোনো বিদ্যমান ব্যাংক দায় পাওয়া যায়নি।"
               />
             </div>
           )}
@@ -615,10 +586,10 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
             <p className="font-medium text-foreground mb-1">
               <BilingualText english="Important Information" bengali="গুরুত্বপূর্ণ তথ্য" />
             </p>
-            <p className="text-xs text-muted-foreground">
-              <BilingualText 
-                english="Your existing loan information helps us assess your eligibility and determine the best loan terms for you." 
-                bengali="আপনার বিদ্যমান ঋণের তথ্য আমাদের আপনার যোগ্যতা মূল্যায়ন এবং আপনার জন্য সর্বোত্তম ঋণের শর্তাবলী নির্ধারণ করতে সহায়তা করে।" 
+            <p className="text-muted-foreground">
+              <BilingualText
+                english="Your existing loan information helps us assess your eligibility and determine the best loan terms for you."
+                bengali="আপনার বিদ্যমান ঋণের তথ্য আমাদের আপনার যোগ্যতা মূল্যায়ন এবং আপনার জন্য সর্বোত্তম ঋণের শর্তাবলী নির্ধারণ করতে সহায়তা করে।"
               />
             </p>
           </div>
