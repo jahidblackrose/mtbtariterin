@@ -13,7 +13,7 @@ interface FaceVerificationStepProps {
   data: any;
 }
 
-type VerificationStatus = "idle" | "requesting-camera" | "camera-ready" | "capturing" | "captured" | "analyzing" | "success" | "failed";
+type VerificationStatus = "idle" | "requesting-camera" | "camera-ready" | "capturing" | "captured" | "verifying" | "verified" | "failed";
 
 export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps) => {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("idle");
@@ -237,14 +237,34 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
     });
   }, [faceDetected, stopCamera]);
 
-  // Verify face via API when Next is clicked
+  // Verify face via API when Verify button is clicked
   const verifyFace = useCallback(async () => {
     if (!capturedImage) {
-      setErrorMessage("Please capture a photo first.");
+      setErrorMessage("Live photo cannot be null or empty.");
+      toast({
+        title: "Error",
+        description: "Live photo cannot be null or empty. Please capture a photo first.",
+        variant: "destructive",
+      });
       return;
     }
 
-    setVerificationStatus("analyzing");
+    // Extract base64 without data URL prefix
+    const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
+    
+    // Check if base64 is valid and not empty
+    if (!base64Image || base64Image.trim() === '') {
+      setErrorMessage("Live photo cannot be null or empty.");
+      toast({
+        title: "Error",
+        description: "Live photo cannot be null or empty. Please capture a photo first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVerificationStatus("verifying");
+    setErrorMessage("");
     
     try {
       const session = getSessionContext();
@@ -264,9 +284,6 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
         }
       }
       
-      // Extract base64 without data URL prefix
-      const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
-      
       const response = await loanApplicationApi.faceMatchWithLiveImage({
         applicationid: session.applicationId || applicationData.applicationId || "",
         imagedata: base64Image,
@@ -275,13 +292,11 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
       });
       
       if (isSuccessResponse(response)) {
-        setVerificationStatus("success");
+        setVerificationStatus("verified");
         toast({
           title: "Verification Successful!",
-          description: "Face verified successfully.",
+          description: "Face verified successfully. Click Next to continue.",
         });
-        // Proceed to next step on success
-        onNext();
       } else {
         throw new Error(response.message || "Face verification failed");
       }
@@ -295,7 +310,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
         variant: "destructive",
       });
     }
-  }, [capturedImage, applicationData, data, onNext]);
+  }, [capturedImage, applicationData, data]);
 
   const retryVerification = useCallback(() => {
     setVerificationStatus("idle");
@@ -341,7 +356,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
             {/* Camera Preview */}
             <div className="relative mb-3">
               <div className={`w-44 h-56 mx-auto rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                verificationStatus === "success" 
+                verificationStatus === "verified" 
                   ? "border-success bg-success/5" 
                   : verificationStatus === "failed"
                   ? "border-destructive bg-destructive/5"
@@ -401,8 +416,8 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                   </div>
                 )}
 
-                {/* Analyzing */}
-                {verificationStatus === "analyzing" && (
+                {/* Verifying */}
+                {verificationStatus === "verifying" && (
                   <div className="flex flex-col items-center justify-center h-full p-3">
                     {capturedImage && (
                       <img 
@@ -419,8 +434,8 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                   </div>
                 )}
 
-                {/* Success */}
-                {verificationStatus === "success" && (
+                {/* Verified Success */}
+                {verificationStatus === "verified" && (
                   <div className="flex flex-col items-center justify-center h-full p-3">
                     {capturedImage && (
                       <img 
@@ -534,8 +549,8 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                     className="w-full gradient-primary" 
                     size="lg"
                   >
-                    <BilingualText english="Next" bengali="পরবর্তী" />
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ShieldCheck className="w-5 h-5 mr-2" />
+                    <BilingualText english="Verify" bengali="যাচাই করুন" />
                   </Button>
                   <Button 
                     onClick={retryVerification}
@@ -549,7 +564,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                 </div>
               )}
 
-              {verificationStatus === "analyzing" && (
+              {verificationStatus === "verifying" && (
                 <Button disabled className="w-full bg-muted" size="lg">
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                   <BilingualText english="Verifying..." bengali="যাচাই করা হচ্ছে..." />
@@ -568,13 +583,13 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                 </Button>
               )}
 
-              {verificationStatus === "success" && (
+              {verificationStatus === "verified" && (
                 <Button 
                   onClick={onNext}
                   className="w-full gradient-primary" 
                   size="lg"
                 >
-                  <BilingualText english="Continue" bengali="এগিয়ে যান" />
+                  <BilingualText english="Next" bengali="পরবর্তী" />
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               )}
