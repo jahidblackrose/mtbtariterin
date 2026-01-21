@@ -4,7 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Camera, CheckCircle, AlertCircle, RefreshCw, ShieldCheck, Ban } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { toast } from "@/hooks/use-toast";
-import { faceVerificationService, ApiError, ERROR_MESSAGES } from "@/services/api";
+import { loanApplicationApi } from "@/services/loanApplicationApi";
+import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
+import { useApplicationData } from "@/contexts/ApplicationDataContext";
 
 interface FaceVerificationStepProps {
   onNext: () => void;
@@ -19,6 +21,8 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
   const [faceDetected, setFaceDetected] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  
+  const { applicationData } = useApplicationData();
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -215,8 +219,10 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
     canvas.height = video.videoHeight || 640;
     ctx.drawImage(video, 0, 0);
     
-    const imageData = canvas.toDataURL('image/jpeg', 0.85);
-    setCapturedImage(imageData);
+    // Get base64 image (remove the data:image/jpeg;base64, prefix for API)
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const base64Image = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+    setCapturedImage(imageDataUrl);
     
     // Stop camera after capture
     stopCamera();
@@ -224,35 +230,65 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
       cancelAnimationFrame(animationFrameRef.current);
     }
     
-    // Analyze captured image
+    // Analyze captured image via API
     setVerificationStatus("analyzing");
     
     try {
-      const response = await faceVerificationService.verifyLiveness(imageData);
+      const session = getSessionContext();
+      const personalData = applicationData.personalData;
       
-      if (response.success && response.data?.verified) {
+      // Format DOB from DD-MM-YYYY or other format to YYYY-MM-DD
+      let formattedDob = "";
+      if (personalData?.dob) {
+        const dobParts = personalData.dob.split(/[-/]/);
+        if (dobParts.length === 3) {
+          // Check if first part is year (YYYY-MM-DD) or day (DD-MM-YYYY)
+          if (dobParts[0].length === 4) {
+            formattedDob = personalData.dob;
+          } else {
+            formattedDob = `${dobParts[2]}-${dobParts[1]}-${dobParts[0]}`;
+          }
+        }
+      }
+      
+      const payload = {
+        nidno: personalData?.nidnumber || data?.nidNumber || "",
+        dob: formattedDob || data?.dob || "",
+        nameEn: personalData?.fullname || data?.fullName || "",
+        apicode: "1002",
+        modulename: "TRL",
+        cif: session.cif || applicationData.customerId || "",
+        applicationid: session.applicationId || applicationData.applicationId || "",
+        imagefile: base64Image,
+      };
+
+      const response = await loanApplicationApi.faceMatchWithLiveImage({
+        applicationid: payload.applicationid,
+        imagedata: payload.imagefile,
+        nidnumber: payload.nidno,
+        cif: payload.cif,
+      });
+      
+      if (isSuccessResponse(response) && response.verified) {
         setVerificationStatus("success");
         toast({
-          title: "Photo Captured!",
+          title: "Verification Successful!",
           description: "Face verified successfully.",
         });
       } else {
-        throw new Error("Face verification failed");
+        throw new Error(response.message || "Face verification failed");
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Face verification error:", error);
       setVerificationStatus("failed");
-      if (error instanceof ApiError) {
-        setErrorMessage(ERROR_MESSAGES[error.code] || error.message);
-      } else {
-        setErrorMessage("Verification failed. Please try again with good lighting.");
-      }
+      setErrorMessage(error.message || "Verification failed. Please try again with good lighting.");
       toast({
         title: "Verification Failed",
-        description: "Please try again with proper lighting.",
+        description: error.message || "Please try again with proper lighting.",
         variant: "destructive",
       });
     }
-  }, [faceDetected, stopCamera]);
+  }, [faceDetected, stopCamera, applicationData, data]);
 
   const retryVerification = useCallback(() => {
     setVerificationStatus("idle");
@@ -374,7 +410,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                       <CheckCircle className="w-7 h-7 text-white" />
                     </div>
                     <p className="text-success font-semibold text-sm relative z-10">
-                      <BilingualText english="Photo Captured!" bengali="ছবি তোলা হয়েছে!" />
+                      <BilingualText english="Verified!" bengali="যাচাই সম্পন্ন!" />
                     </p>
                   </div>
                 )}
