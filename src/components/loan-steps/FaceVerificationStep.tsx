@@ -13,7 +13,7 @@ interface FaceVerificationStepProps {
   data: any;
 }
 
-type VerificationStatus = "idle" | "requesting-camera" | "camera-ready" | "capturing" | "analyzing" | "success" | "failed";
+type VerificationStatus = "idle" | "requesting-camera" | "camera-ready" | "capturing" | "captured" | "analyzing" | "success" | "failed";
 
 export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps) => {
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("idle");
@@ -182,7 +182,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
     }
   }, [isMobile, startFaceDetection]);
 
-  // Capture photo when face is detected
+  // Capture photo when face is detected (only capture, no API call)
   const capturePhoto = useCallback(async () => {
     if (!faceDetected) {
       setErrorMessage("No face detected. Please position your face in the frame.");
@@ -219,9 +219,8 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
     canvas.height = video.videoHeight || 640;
     ctx.drawImage(video, 0, 0);
     
-    // Get base64 image (remove the data:image/jpeg;base64, prefix for API)
+    // Get base64 image data URL for preview
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    const base64Image = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
     setCapturedImage(imageDataUrl);
     
     // Stop camera after capture
@@ -230,7 +229,21 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
       cancelAnimationFrame(animationFrameRef.current);
     }
     
-    // Analyze captured image via API
+    // Set status to captured - waiting for user to click Next
+    setVerificationStatus("captured");
+    toast({
+      title: "Photo Captured",
+      description: "Click Next to verify your face.",
+    });
+  }, [faceDetected, stopCamera]);
+
+  // Verify face via API when Next is clicked
+  const verifyFace = useCallback(async () => {
+    if (!capturedImage) {
+      setErrorMessage("Please capture a photo first.");
+      return;
+    }
+
     setVerificationStatus("analyzing");
     
     try {
@@ -251,30 +264,24 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
         }
       }
       
-      const payload = {
-        nidno: personalData?.nidnumber || data?.nidNumber || "",
-        dob: formattedDob || data?.dob || "",
-        nameEn: personalData?.fullname || data?.fullName || "",
-        apicode: "1002",
-        modulename: "TRL",
-        cif: session.cif || applicationData.customerId || "",
-        applicationid: session.applicationId || applicationData.applicationId || "",
-        imagefile: base64Image,
-      };
-
+      // Extract base64 without data URL prefix
+      const base64Image = capturedImage.replace(/^data:image\/\w+;base64,/, '');
+      
       const response = await loanApplicationApi.faceMatchWithLiveImage({
-        applicationid: payload.applicationid,
-        imagedata: payload.imagefile,
-        nidnumber: payload.nidno,
-        cif: payload.cif,
+        applicationid: session.applicationId || applicationData.applicationId || "",
+        imagedata: base64Image,
+        nidnumber: personalData?.nidnumber || data?.nidNumber || "",
+        cif: session.cif || applicationData.customerId || "",
       });
       
-      if (isSuccessResponse(response) && response.verified) {
+      if (isSuccessResponse(response)) {
         setVerificationStatus("success");
         toast({
           title: "Verification Successful!",
           description: "Face verified successfully.",
         });
+        // Proceed to next step on success
+        onNext();
       } else {
         throw new Error(response.message || "Face verification failed");
       }
@@ -288,7 +295,7 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
         variant: "destructive",
       });
     }
-  }, [faceDetected, stopCamera, applicationData, data]);
+  }, [capturedImage, applicationData, data, onNext]);
 
   const retryVerification = useCallback(() => {
     setVerificationStatus("idle");
@@ -374,6 +381,23 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                     <p className="text-primary font-medium text-xs">
                       <BilingualText english="Starting camera..." bengali="ক্যামেরা শুরু হচ্ছে..." />
                     </p>
+                  </div>
+                )}
+
+                {/* Captured - showing preview */}
+                {verificationStatus === "captured" && capturedImage && (
+                  <div className="flex flex-col items-center justify-center h-full p-3">
+                    <img 
+                      src={capturedImage} 
+                      alt="Captured" 
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ transform: "scaleX(-1)" }}
+                    />
+                    <div className="absolute bottom-2 left-2 right-2 bg-success/90 rounded-lg py-1.5 px-2">
+                      <p className="text-white font-medium text-xs text-center">
+                        <BilingualText english="Photo Captured ✓" bengali="ছবি তোলা হয়েছে ✓" />
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -496,13 +520,39 @@ export const FaceVerificationStep = ({ onNext, data }: FaceVerificationStepProps
                 </Button>
               )}
 
-              {["capturing", "analyzing"].includes(verificationStatus) && (
+              {verificationStatus === "capturing" && (
                 <Button disabled className="w-full bg-muted" size="lg">
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  <BilingualText 
-                    english={verificationStatus === "analyzing" ? "Verifying..." : "Capturing..."}
-                    bengali={verificationStatus === "analyzing" ? "যাচাই করা হচ্ছে..." : "ক্যাপচার করা হচ্ছে..."} 
-                  />
+                  <BilingualText english="Capturing..." bengali="ক্যাপচার করা হচ্ছে..." />
+                </Button>
+              )}
+
+              {verificationStatus === "captured" && (
+                <div className="space-y-2">
+                  <Button 
+                    onClick={verifyFace}
+                    className="w-full gradient-primary" 
+                    size="lg"
+                  >
+                    <BilingualText english="Next" bengali="পরবর্তী" />
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button 
+                    onClick={retryVerification}
+                    variant="outline" 
+                    size="lg"
+                    className="w-full"
+                  >
+                    <RefreshCw className="w-5 h-5 mr-2" />
+                    <BilingualText english="Retake Photo" bengali="আবার ছবি তুলুন" />
+                  </Button>
+                </div>
+              )}
+
+              {verificationStatus === "analyzing" && (
+                <Button disabled className="w-full bg-muted" size="lg">
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  <BilingualText english="Verifying..." bengali="যাচাই করা হচ্ছে..." />
                 </Button>
               )}
 
