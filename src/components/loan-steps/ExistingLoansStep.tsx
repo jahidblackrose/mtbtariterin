@@ -11,6 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { loanApplicationApi, BankData, BranchData, LiabilityData } from "@/services/loanApplicationApi";
 import { isSuccessResponse, getSessionContext } from "@/services/apiClient";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ExistingLoansStepProps {
   onNext: (data: any) => void;
@@ -76,6 +94,10 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [completingNoLiability, setCompletingNoLiability] = useState(false);
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [liabilityToDelete, setLiabilityToDelete] = useState<LiabilityData | null>(null);
 
   // Load existing liabilities from API on mount
   useEffect(() => {
@@ -186,7 +208,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
   // Save liability via API
   const handleAddOrUpdate = async () => {
     if (!liabilityForm.bankCode || !liabilityForm.branchCode || !liabilityForm.loanType) {
-      toast.error("Please fill in all required fields (Bank, Branch, Loan Type, Amount)");
+      toast.error("Please fill in all required fields (Bank, Branch, Loan Type)");
       return;
     }
 
@@ -197,11 +219,11 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
       const payload = {
         liabilityid: editingId || "",
         applicationid: session.applicationId || "",
-        bankname: liabilityForm.bankCode, // API expects code in bankname field
-        branchname: liabilityForm.branchCode, // API expects code in branchname field
+        bankname: liabilityForm.bankCode,
+        branchname: liabilityForm.branchCode,
         loantype: liabilityForm.loanType,
-        loanamount: liabilityForm.loanAmount,
-        liabilitytype: liabilityForm.loanType === "CC" ? "C" as const : "L" as const, // C for Credit Card, L for Loan
+        loanamount: liabilityForm.loanAmount || "0",
+        liabilitytype: liabilityForm.loanType === "CC" ? "C" as const : "L" as const,
         outstanding: liabilityForm.outstanding || "0",
         emi: liabilityForm.emi || "0",
         apicode: "",
@@ -238,9 +260,20 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
     }
   };
 
+  // Open delete confirmation dialog
+  const openDeleteDialog = (liability: LiabilityData) => {
+    setLiabilityToDelete(liability);
+    setDeleteDialogOpen(true);
+  };
+
   // Delete liability via API
-  const handleDelete = async (liabilityId: string) => {
+  const confirmDelete = async () => {
+    if (!liabilityToDelete) return;
+
+    const liabilityId = liabilityToDelete.liabilityid;
     setDeletingId(liabilityId);
+    setDeleteDialogOpen(false);
+
     try {
       const session = getSessionContext();
       const response = await loanApplicationApi.deleteOtherBankLiability(liabilityId, session.applicationId || "");
@@ -256,6 +289,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
       toast.error(error.message || "Failed to delete liability");
     } finally {
       setDeletingId(null);
+      setLiabilityToDelete(null);
     }
   };
 
@@ -310,6 +344,31 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
 
   return (
     <div className="space-y-6">
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <BilingualText english="Delete Liability" bengali="দায় মুছে ফেলুন" />
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <BilingualText 
+                english={`Are you sure you want to delete this liability from ${liabilityToDelete?.bankname || "this bank"}? This action cannot be undone.`}
+                bengali={`আপনি কি নিশ্চিত যে আপনি ${liabilityToDelete?.bankname || "এই ব্যাংক"} থেকে এই দায় মুছে ফেলতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।`}
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <BilingualText english="Cancel" bengali="বাতিল" />
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <BilingualText english="Delete" bengali="মুছুন" />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header Card - Other Bank Liability */}
       <div className="flex items-start justify-between p-4 bg-card rounded-xl border border-border/50 shadow-sm">
         <div className="flex-1">
@@ -350,19 +409,23 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
         )}
       </div>
 
-      {/* No Liability Checkbox - Show only when no liabilities exist and not adding */}
-      {liabilities.length === 0 && !showAddForm && !isReadOnly && (
+      {/* No Liability Checkbox - Always show when not in read-only mode and no liabilities */}
+      {!isReadOnly && (
         <div className="flex items-start space-x-3 p-4 bg-muted/30 rounded-xl border border-border/50">
           <Checkbox
             id="notApplicable"
             checked={formData.notApplicable}
-            disabled={isReadOnly || completingNoLiability}
-            onCheckedChange={(checked) =>
+            disabled={isReadOnly || completingNoLiability || liabilities.length > 0}
+            onCheckedChange={(checked) => {
               setFormData((prev) => ({
                 ...prev,
                 notApplicable: checked as boolean,
-              }))
-            }
+              }));
+              // Hide add form when checking "no liability"
+              if (checked) {
+                setShowAddForm(false);
+              }
+            }}
             className="mt-0.5"
           />
           <div className="space-y-1">
@@ -384,9 +447,9 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
 
       {/* Show Not Applicable status in read-only mode */}
       {isReadOnly && formData.notApplicable && (
-        <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
-          <CheckCircle2 className="w-5 h-5 text-success" />
-          <span className="text-sm font-medium text-success">
+        <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+          <CheckCircle2 className="w-5 h-5 text-primary" />
+          <span className="text-sm font-medium text-foreground">
             <BilingualText english="No other bank liability declared" bengali="অন্য কোনো ব্যাংক দায় ঘোষণা করা হয়নি" />
           </span>
         </div>
@@ -394,17 +457,17 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
 
       {!formData.notApplicable && (
         <>
-          {/* Add New Button - Show when not adding and has no form open */}
+          {/* Add New Button - Always show when not adding and not in read-only mode */}
           {!showAddForm && !isReadOnly && (
             <Button variant="outline" onClick={() => setShowAddForm(true)} className="w-full border-dashed">
               <Plus className="w-4 h-4 mr-2" />
-              <BilingualText english="Add Bank Liability" bengali="ব্যাংক দায় যোগ করুন" />
+              <BilingualText english="Add Other Bank Liability" bengali="অন্য ব্যাংকের দায় যোগ করুন" />
             </Button>
           )}
 
           {/* Liability Form - Only show when adding */}
           {showAddForm && !isReadOnly && (
-            <div className="p-4 rounded-lg space-y-4 border border-primary/30">
+            <div className="p-4 rounded-lg space-y-4 border border-primary/30 bg-background">
               <div className="flex items-center justify-between pb-2 border-b border-border/30">
                 <h4 className="font-medium text-sm">
                   <BilingualText english="Add New Liability" bengali="নতুন দায় যোগ করুন" />
@@ -429,10 +492,10 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                   <BilingualText english="Loan Type *" bengali="ঋণের ধরন *" />
                 </Label>
                 <Select value={liabilityForm.loanType} onValueChange={(value) => handleInputChange("loanType", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background border-input">
                     <SelectValue placeholder="-- Select Loan Type --" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card z-50">
+                  <SelectContent className="bg-background z-50">
                     {loanTypes.map((type) => (
                       <SelectItem key={type.code} value={type.code}>
                         {type.name}
@@ -448,7 +511,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                   <BilingualText english="Bank Name *" bengali="ব্যাংকের নাম *" />
                 </Label>
                 <Select value={liabilityForm.bankCode} onValueChange={handleBankChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background border-input">
                     {loadingBanks ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -458,7 +521,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                       <SelectValue placeholder="-- Select Bank --" />
                     )}
                   </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
+                  <SelectContent className="bg-background z-50 max-h-60">
                     {banks.map((bank) => (
                       <SelectItem key={bank.bankcode} value={bank.bankcode}>
                         {bank.bankname}
@@ -478,7 +541,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                   onValueChange={handleBranchChange}
                   disabled={!liabilityForm.bankCode}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background border-input">
                     {loadingBranches ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -488,7 +551,7 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                       <SelectValue placeholder={liabilityForm.bankCode ? "-- Select Branch --" : "Select Bank first"} />
                     )}
                   </SelectTrigger>
-                  <SelectContent className="bg-card z-50 max-h-60">
+                  <SelectContent className="bg-background z-50 max-h-60">
                     {branches.map((branch) => (
                       <SelectItem key={branch.branchcode} value={branch.branchcode}>
                         {branch.branchname}
@@ -497,6 +560,49 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Loan Amount */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  <BilingualText english="Loan Amount" bengali="ঋণের পরিমাণ" />
+                </Label>
+                <Input
+                  type="number"
+                  value={liabilityForm.loanAmount}
+                  onChange={(e) => handleInputChange("loanAmount", e.target.value)}
+                  placeholder="Enter loan amount"
+                  className="bg-background border-input"
+                />
+              </div>
+
+              {/* Outstanding Amount */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  <BilingualText english="Outstanding Amount" bengali="বকেয়া পরিমাণ" />
+                </Label>
+                <Input
+                  type="number"
+                  value={liabilityForm.outstanding}
+                  onChange={(e) => handleInputChange("outstanding", e.target.value)}
+                  placeholder="Enter outstanding amount"
+                  className="bg-background border-input"
+                />
+              </div>
+
+              {/* EMI Amount */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  <BilingualText english="Monthly EMI" bengali="মাসিক ইএমআই" />
+                </Label>
+                <Input
+                  type="number"
+                  value={liabilityForm.emi}
+                  onChange={(e) => handleInputChange("emi", e.target.value)}
+                  placeholder="Enter monthly EMI"
+                  className="bg-background border-input"
+                />
+              </div>
+
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3">
                 <Button type="button" onClick={handleAddOrUpdate} disabled={submitting} className="w-full">
@@ -511,59 +617,77 @@ export const ExistingLoansStep = ({ onNext, data, isReadOnly = false }: Existing
             </div>
           )}
 
-          {/* Liabilities List */}
+          {/* Liabilities Data Grid */}
           {liabilities.length > 0 && (
             <div className="space-y-4">
-              <h4 className="font-medium text-primary">
+              <h4 className="font-medium text-foreground">
                 <BilingualText
                   english={isReadOnly ? "Existing Liabilities" : "Added Liabilities"}
                   bengali={isReadOnly ? "বিদ্যমান দায়" : "যোগ করা দায়"}
                 />
               </h4>
 
-              {liabilities.map((liability) => (
-                <div key={liability.liabilityid} className="p-4 rounded-lg border bg-card/50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h5 className="font-semibold">{liability.bankname}</h5>
-                        <Badge variant="outline">{liability.loantype}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{liability.branchname}</p>
-                    </div>
-                    {!isReadOnly && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(liability.liabilityid)}
-                        disabled={deletingId === liability.liabilityid}
-                        className="text-destructive hover:text-destructive/90"
-                      >
-                        {deletingId === liability.liabilityid ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
+              {/* Responsive Data Grid */}
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">
+                        <BilingualText english="Bank Name" bengali="ব্যাংকের নাম" />
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <BilingualText english="Branch Name" bengali="শাখার নাম" />
+                      </TableHead>
+                      <TableHead className="font-semibold">
+                        <BilingualText english="Loan Type" bengali="ঋণের ধরন" />
+                      </TableHead>
+                      {!isReadOnly && (
+                        <TableHead className="font-semibold text-right w-20">
+                          <BilingualText english="Action" bengali="কর্ম" />
+                        </TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {liabilities.map((liability) => (
+                      <TableRow key={liability.liabilityid} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{liability.bankname}</TableCell>
+                        <TableCell>{liability.branchname}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{liability.loantype}</Badge>
+                        </TableCell>
+                        {!isReadOnly && (
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDeleteDialog(liability)}
+                              disabled={deletingId === liability.liabilityid}
+                              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            >
+                              {deletingId === liability.liabilityid ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </TableCell>
                         )}
-                      </Button>
-                    )}
-                  </div>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
 
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Loan Amount</p>
-                      <p className="font-medium">৳{parseFloat(liability.loanamount || "0").toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Outstanding</p>
-                      <p className="font-medium">৳{parseFloat(liability.outstanding || "0").toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">EMI</p>
-                      <p className="font-medium">৳{parseFloat(liability.emi || "0").toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {/* Empty State */}
+          {liabilities.length === 0 && !showAddForm && (
+            <div className="p-6 bg-muted/30 rounded-lg text-center text-muted-foreground border border-dashed">
+              <BilingualText
+                english="No other bank liabilities added yet."
+                bengali="এখনও কোনো অন্য ব্যাংকের দায় যোগ করা হয়নি।"
+              />
             </div>
           )}
 
