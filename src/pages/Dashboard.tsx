@@ -51,10 +51,10 @@ const Dashboard = () => {
     switch (normalizedStatus) {
       case "FULL":
       case "ACTIVE":
-        return <Badge className="status-pending">Active</Badge>;
+        return <Badge className="bg-success text-success-foreground">Active</Badge>;
       case "CLOSED":
       case "COMPLETED":
-        return <Badge className="status-approved">Completed</Badge>;
+        return <Badge className="bg-destructive text-destructive-foreground">Closed</Badge>;
       case "OVERDUE":
         return <Badge className="status-rejected">Overdue</Badge>;
       default:
@@ -241,7 +241,7 @@ const Dashboard = () => {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleCloseLoan(loan.loanacno)}
-                              className="text-xs flex-shrink-0"
+                              className="text-xs flex-shrink-0 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                             >
                               <BilingualText english="Close" bengali="বন্ধ করুন" />
                             </Button>
@@ -296,15 +296,9 @@ const Dashboard = () => {
                 <div className="space-y-3 text-sm">
                   <div>
                     <p className="text-muted-foreground text-xs">
-                      <BilingualText english="Customer ID" bengali="গ্রাহক আইডি" />
+                      <BilingualText english="Name" bengali="নাম" />
                     </p>
-                    <p className="font-medium">{session.customerId || session.cif || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">
-                      <BilingualText english="Account Number" bengali="অ্যাকাউন্ট নম্বর" />
-                    </p>
-                    <p className="font-medium">{maskedAccountNumber}</p>
+                    <p className="font-medium">{applicationData.personalData?.fullname || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">
