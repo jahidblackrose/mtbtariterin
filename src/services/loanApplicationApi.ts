@@ -691,6 +691,96 @@ export const loanApplicationApi = {
       },
     });
   },
+
+  // ============ Loan Discharge APIs ============
+
+  /**
+   * Loan Discharge Enquiry - Get discharge details for a loan account
+   */
+  async loanDischargeEnquiry(loanacno: string): Promise<ApiResponse<LoanDischargeEnquiryResponse>> {
+    return apiRequest<LoanDischargeEnquiryResponse>(
+      '/loanapplication/api/v1/Application/LoanDischargeEnquiryRequestAppId',
+      {
+        body: {
+          applicationid: '',
+          loanacno,
+          minbal: '',
+          savingsac: '',
+          minimuminstallment: '',
+        },
+      }
+    );
+  },
+
+  /**
+   * Request OTP for Loan Discharge
+   */
+  async loanDischargeOtpRequest(applicationid: string, regsl: string): Promise<ApiResponse<LoanDischargeOtpResponse>> {
+    return apiRequest<LoanDischargeOtpResponse>(
+      '/loanapplication/api/v1/Application/LoanDischargeOTPRequest',
+      {
+        body: {
+          applicationid,
+          regsl,
+          modulename: '',
+          apicode: '',
+        },
+      }
+    );
+  },
+
+  /**
+   * Validate OTP for Loan Discharge
+   */
+  async loanDischargeOtpValidate(data: LoanDischargeOtpValidateRequest): Promise<ApiResponse> {
+    return apiRequest(
+      '/loanapplication/api/v1/Application/LoanDischargeOTPValidate',
+      {
+        body: data,
+      }
+    );
+  },
 };
+
+// Response types for Loan Discharge APIs
+export interface LoanDischargeEnquiryResponse {
+  status: string;
+  message: string;
+  loanacnum: string;
+  loanacname: string;
+  dischargeamt: string;
+  totalinstallment: string;
+  remaininginstallment: string;
+  recoveryacno: string;
+  recoveryacname: string;
+  smsMobileNum: string;
+  custName: string;
+  savingac: string;
+  savingsac: string;
+  savingsacbal: string;
+  acctTyp: string;
+  minbal: string;
+  minimuminstallment: string;
+  errormessage: string;
+  regsl: string;
+  applicationid: string;
+}
+
+export interface LoanDischargeOtpResponse {
+  status: string;
+  message: string;
+  regref: string;
+  otpref: string;
+  regsl: string;
+}
+
+export interface LoanDischargeOtpValidateRequest {
+  applicationid: string;
+  regref: string;
+  otpref: string;
+  regsl: string;
+  otp: string;
+  modulename: string;
+}
 
 export default loanApplicationApi;
