@@ -35,6 +35,12 @@ const LoanApplication = () => {
   const [stepDirection, setStepDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState<{
+    status: string;
+    message: string;
+    applicationId: string;
+  } | null>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { applicationData } = useApplicationData();
@@ -145,21 +151,42 @@ const LoanApplication = () => {
     }
   }, [currentStep, navigate]);
 
+  // Handle terms checkbox change
+  const handleTermsChange = useCallback((accepted: boolean) => {
+    setTermsAccepted(accepted);
+  }, []);
+
   // Handle final submission
   const handleSubmit = useCallback(async () => {
+    if (!termsAccepted) {
+      toast({
+        title: "Terms Required",
+        description: "Please accept all terms and conditions to proceed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const session = getSessionContext();
+      const appId = session.applicationId || applicationData.applicationId || "";
       const response = await loanApplicationApi.submitApplication({
-        applicationid: session.applicationId || applicationData.applicationId,
+        applicationid: appId,
+        apicode: "",
+        modulename: "",
       });
 
       if (isSuccessResponse(response)) {
+        setSubmissionResult({
+          status: response.status || "200",
+          message: response.message || "success",
+          applicationId: appId,
+        });
         toast({
           title: "Application Submitted",
           description: "Your loan application has been submitted successfully!",
         });
-        setCurrentStep(8); // Move to confirmation
       } else {
         throw new Error(response.message || "Failed to submit application");
       }
@@ -172,7 +199,7 @@ const LoanApplication = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [applicationData.applicationId]);
+  }, [applicationData.applicationId, termsAccepted]);
 
   const renderStep = () => {
     const stepProps = { 
@@ -195,7 +222,15 @@ const LoanApplication = () => {
       case 6:
         return <FaceVerificationStep {...stepProps} />;
       case 7:
-        return <TermsConditionsStep {...stepProps} onSubmit={handleSubmit} isSubmitting={isSubmitting} />;
+        return (
+          <TermsConditionsStep 
+            {...stepProps} 
+            onSubmit={handleSubmit} 
+            isSubmitting={isSubmitting}
+            submissionResult={submissionResult}
+            onTermsChange={handleTermsChange}
+          />
+        );
       case 8:
         return <ApplicationConfirmationStep data={prefilledData} />;
       default:
@@ -207,7 +242,10 @@ const LoanApplication = () => {
   const currentStepTitle = STEPS[currentStep - 1];
 
   // Determine if we should show the bottom CTA
-  const showBottomCTA = currentStep !== 8 && currentStep !== 7 && !(isMobile && currentStep === 6);
+  const showBottomCTA = currentStep !== 8 && !submissionResult && !(isMobile && currentStep === 6);
+
+  // Determine if step 7 submit should be disabled
+  const isStep7SubmitDisabled = currentStep === 7 && !termsAccepted;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -286,12 +324,16 @@ const LoanApplication = () => {
         </div>
       </main>
 
-      {/* Fixed Bottom CTA - Only for navigation steps (not Terms or Confirmation) */}
+      {/* Fixed Bottom CTA - Only for navigation steps (not Confirmation or after submission) */}
       {showBottomCTA && (
         <FixedBottomCTA
-          primaryLabel={{ english: "Next", bengali: "পরবর্তী" }}
-          onPrimaryClick={() => handleNext()}
-          primaryLoading={isLoading}
+          primaryLabel={currentStep === 7 
+            ? { english: "Submit", bengali: "জমা দিন" }
+            : { english: "Next", bengali: "পরবর্তী" }
+          }
+          onPrimaryClick={currentStep === 7 ? handleSubmit : () => handleNext()}
+          primaryLoading={currentStep === 7 ? isSubmitting : isLoading}
+          primaryDisabled={isStep7SubmitDisabled}
           secondaryLabel={currentStep > 1 ? { english: "Back", bengali: "পিছনে" } : undefined}
           onSecondaryClick={currentStep > 1 ? handlePrevious : undefined}
         />
