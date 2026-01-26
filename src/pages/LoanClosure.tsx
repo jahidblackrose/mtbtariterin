@@ -1,39 +1,114 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, AlertTriangle, CheckCircle, CreditCard } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle, CreditCard, Loader2 } from "lucide-react";
 import { BilingualText } from "@/components/BilingualText";
 import { toast } from "@/hooks/use-toast";
 import mtbLogo from "@/assets/mtvb_logo.png";
+import { loanApplicationApi, LoanDischargeEnquiryResponse } from "@/services/loanApplicationApi";
 
 const LoanClosure = () => {
   const [step, setStep] = useState(1);
   const [otp, setOtp] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dischargeData, setDischargeData] = useState<LoanDischargeEnquiryResponse | null>(null);
+  const [otpData, setOtpData] = useState<{ regref: string; otpref: string; regsl: string } | null>(null);
+  const [canClose, setCanClose] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
   const { loanId } = location.state || {};
 
-  const loanDetails = {
-    id: loanId || "LN001",
-    amount: 150000,
-    balance: 45000,
-    interestDue: 2500,
-    charges: 500,
-    totalDischargeAmount: 48000,
-    installmentsPaid: 8,
-    totalInstallments: 12
+  useEffect(() => {
+    if (!loanId) {
+      toast({
+        title: "Error",
+        description: "No loan account selected",
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+      return;
+    }
+
+    fetchDischargeDetails();
+  }, [loanId]);
+
+  const fetchDischargeDetails = async () => {
+    setIsLoading(true);
+    try {
+      const response = await loanApplicationApi.loanDischargeEnquiry(loanId);
+      
+      if (response.status === "200") {
+        // Cast response to the expected type since it includes all the fields
+        const data = response as unknown as LoanDischargeEnquiryResponse;
+        setDischargeData(data);
+        
+        // Check if total installment equals remaining installment
+        const totalInstallment = parseInt(data.totalinstallment) || 0;
+        const remainingInstallment = parseInt(data.remaininginstallment) || 0;
+        setCanClose(totalInstallment !== remainingInstallment);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to fetch loan details",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Error fetching discharge details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch loan discharge details",
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCloseLoan = () => {
-    setStep(2);
+  const handleCloseLoan = async () => {
+    if (!dischargeData) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await loanApplicationApi.loanDischargeOtpRequest(
+        dischargeData.applicationid,
+        dischargeData.regsl
+      );
+
+      if (response.status === "200") {
+        setOtpData({
+          regref: response.regref,
+          otpref: response.otpref,
+          regsl: response.regsl,
+        });
+        setStep(2);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to send OTP",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error requesting OTP:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleOtpVerification = () => {
+  const handleOtpVerification = async () => {
     if (otp.length !== 6) {
       toast({
         title: "Error",
@@ -43,16 +118,56 @@ const LoanClosure = () => {
       return;
     }
 
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep(3);
-    }, 1500);
+    if (!otpData || !dischargeData) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await loanApplicationApi.loanDischargeOtpValidate({
+        applicationid: dischargeData.applicationid,
+        regref: otpData.regref,
+        otpref: otpData.otpref,
+        regsl: otpData.regsl,
+        otp: otp,
+        modulename: "LOAN",
+      });
+
+      if (response.status === "200") {
+        setStep(3);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "OTP verification failed",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error validating OTP:", error);
+      toast({
+        title: "Error",
+        description: "OTP verification failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const goToDashboard = () => {
     navigate("/dashboard");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">
+            <BilingualText english="Loading loan details..." bengali="ঋণের বিবরণ লোড হচ্ছে..." />
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,7 +199,7 @@ const LoanClosure = () => {
 
       <div className="banking-container py-8">
         <div className="max-w-2xl mx-auto">
-          {step === 1 && (
+          {step === 1 && dischargeData && (
             <>
               {/* Loan Details */}
               <Card className="banking-card-elevated mb-6">
@@ -104,71 +219,117 @@ const LoanClosure = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        <BilingualText english="Loan ID" bengali="ঋণ আইডি" />
+                        <BilingualText english="Loan A/C" bengali="ঋণ হিসাব" />
                       </span>
-                      <span className="font-medium">{loanDetails.id}</span>
+                      <span className="font-medium">{dischargeData.loanacnum}</span>
                     </div>
                     
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        <BilingualText english="Original Amount" bengali="মূল পরিমাণ" />
+                        <BilingualText english="Discharge Amount" bengali="নিষ্পত্তির পরিমাণ" />
                       </span>
-                      <span className="font-medium">৳{loanDetails.amount.toLocaleString()}</span>
+                      <span className="font-medium text-primary">৳{parseFloat(dischargeData.dischargeamt || "0").toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        <BilingualText english="Outstanding Principal" bengali="বকেয়া মূলধন" />
+                        <BilingualText english="Total Installment" bengali="মোট কিস্তি" />
                       </span>
-                      <span className="font-medium">৳{loanDetails.balance.toLocaleString()}</span>
+                      <span className="font-medium">{dischargeData.totalinstallment}</span>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        <BilingualText english="Accrued Interest" bengali="সঞ্চিত সুদ" />
+                        <BilingualText english="Remaining Installment" bengali="অবশিষ্ট কিস্তি" />
                       </span>
-                      <span className="font-medium">৳{loanDetails.interestDue.toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        <BilingualText english="Processing Charges" bengali="প্রক্রিয়াকরণ চার্জ" />
-                      </span>
-                      <span className="font-medium">৳{loanDetails.charges.toLocaleString()}</span>
+                      <span className="font-medium">{dischargeData.remaininginstallment}</span>
                     </div>
 
                     <Separator />
 
-                    <div className="flex justify-between text-lg font-bold">
-                      <span className="text-primary">
-                        <BilingualText english="Total Discharge Amount" bengali="মোট নিষ্পত্তির পরিমাণ" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        <BilingualText english="Recovery A/C" bengali="আদায় হিসাব" />
                       </span>
-                      <span className="text-primary">৳{loanDetails.totalDischargeAmount.toLocaleString()}</span>
+                      <span className="font-medium">{dischargeData.recoveryacno}</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        <BilingualText english="Recovery A/C Title" bengali="আদায় হিসাবের নাম" />
+                      </span>
+                      <span className="font-medium">{dischargeData.recoveryacname}</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        <BilingualText english="SMS Mobile No." bengali="এসএমএস মোবাইল নম্বর" />
+                      </span>
+                      <span className="font-medium">{dischargeData.smsMobileNum}</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        <BilingualText english="Savings A/C Balance" bengali="সেভিংস হিসাব ব্যালেন্স" />
+                      </span>
+                      <span className="font-medium">{dischargeData.savingsacbal}</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        <BilingualText english="Account Type" bengali="হিসাবের ধরন" />
+                      </span>
+                      <span className="font-medium text-xs">{dischargeData.acctTyp}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Warning Note */}
-              <div className="flex items-start gap-3 p-4 bg-warning/10 rounded-lg border border-warning/20 mb-6">
-                <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-warning mb-1">
-                    <BilingualText english="Important Notice" bengali="গুরুত্বপূর্ণ বিজ্ঞপ্তি" />
-                  </p>
-                  <p className="text-warning-foreground">
-                    <BilingualText 
-                      english="Loan closure is only available after paying at least one installment. This action cannot be undone once completed."
-                      bengali="কমপক্ষে একটি কিস্তি পরিশোধের পর ঋণ বন্ধ করা যায়। সম্পূর্ণ হওয়ার পর এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।"
-                    />
-                  </p>
+              {/* Message/Warning Note */}
+              {dischargeData.errormessage && (
+                <div className="flex items-start gap-3 p-4 bg-warning/10 rounded-lg border border-warning/20 mb-6">
+                  <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-warning mb-1">
+                      <BilingualText english="Message" bengali="বার্তা" />
+                    </p>
+                    <p className="text-warning-foreground">
+                      {dischargeData.errormessage}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Close Button */}
-              <Button onClick={handleCloseLoan} className="w-full gradient-primary" size="lg">
-                <BilingualText english="Close Loan Account" bengali="ঋণ অ্যাকাউন্ট বন্ধ করুন" />
-              </Button>
+              {/* Show Close Button only if canClose is true */}
+              {canClose ? (
+                <Button 
+                  onClick={handleCloseLoan} 
+                  disabled={isSubmitting}
+                  className="w-full gradient-primary" 
+                  size="lg"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <BilingualText english="Processing..." bengali="প্রক্রিয়াকরণ হচ্ছে..." />
+                    </>
+                  ) : (
+                    <BilingualText english="Close Loan Account" bengali="ঋণ অ্যাকাউন্ট বন্ধ করুন" />
+                  )}
+                </Button>
+              ) : (
+                <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-destructive">
+                      <BilingualText 
+                        english="You have to pay a minimum of 1 installment before closing this loan." 
+                        bengali="এই ঋণ বন্ধ করার আগে আপনাকে কমপক্ষে ১টি কিস্তি পরিশোধ করতে হবে।" 
+                      />
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -205,12 +366,15 @@ const LoanClosure = () => {
 
                 <Button 
                   onClick={handleOtpVerification} 
-                  disabled={isLoading || otp.length !== 6}
+                  disabled={isSubmitting || otp.length !== 6}
                   className="w-full gradient-primary"
                   size="lg"
                 >
-                  {isLoading ? (
-                    <BilingualText english="Verifying..." bengali="যাচাই করা হচ্ছে..." />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <BilingualText english="Verifying..." bengali="যাচাই করা হচ্ছে..." />
+                    </>
                   ) : (
                     <BilingualText english="Verify & Close Loan" bengali="যাচাই ও ঋণ বন্ধ করুন" />
                   )}
@@ -243,10 +407,10 @@ const LoanClosure = () => {
                 <CardContent className="p-6">
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">
-                      <BilingualText english="Closure Reference ID" bengali="বন্ধের রেফারেন্স আইডি" />
+                      <BilingualText english="Loan Account" bengali="ঋণ হিসাব" />
                     </p>
                     <p className="text-xl font-bold text-primary font-mono">
-                      CL{Date.now().toString().slice(-8)}
+                      {dischargeData?.loanacnum}
                     </p>
                   </div>
                 </CardContent>
