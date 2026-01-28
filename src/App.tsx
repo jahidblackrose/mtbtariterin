@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ApplicationDataProvider } from "@/contexts/ApplicationDataContext";
+import RefreshBlocker from "@/components/RefreshBlocker";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import OtpVerification from "./pages/OtpVerification";
@@ -21,6 +22,7 @@ const App = () => (
     <LanguageProvider>
       <ApplicationDataProvider>
         <TooltipProvider>
+          <RefreshBlocker />
           <Toaster />
           <Sonner />
           <BrowserRouter>
