@@ -30,6 +30,15 @@ const MARITAL_STATUS_OPTIONS = [
   { value: "Widowed", label: "Widowed" },
 ];
 
+// Spouse profession options
+const SPOUSE_PROFESSION_OPTIONS = [
+  { value: "Service", label: "Service" },
+  { value: "Business", label: "Business" },
+  { value: "Housewife", label: "Housewife" },
+  { value: "Professional", label: "Professional" },
+  { value: "Others", label: "Others" },
+];
+
 export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalInfoStepProps) => {
   const { applicationData } = useApplicationData();
   const personalData = applicationData.personalData;
@@ -42,6 +51,10 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
     emergencyContactNumber: personalData?.emergencycontactnumber || data.emergencyContactNumber || "",
     districtOfBirthCode: personalData?.distofbirthcode || data.districtOfBirthCode || "",
     districtOfBirthName: personalData?.distofbirthname || data.districtOfBirthName || "",
+    // Spouse fields
+    spouseName: personalData?.spousename || data.spouseName || "",
+    spouseProfession: personalData?.spouseprofession || data.spouseProfession || "",
+    spouseContactNumber: personalData?.spousecontactnumber || data.spouseContactNumber || "",
   });
 
   // District list for dropdown
@@ -49,6 +62,16 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [emergencyNumberError, setEmergencyNumberError] = useState("");
+  
+  // Spouse validation errors
+  const [spouseErrors, setSpouseErrors] = useState({
+    spouseName: "",
+    spouseProfession: "",
+    spouseContactNumber: "",
+  });
+
+  // Check if spouse fields should be shown
+  const isMarried = formData.maritalStatus === "Married";
 
   // Read-only field values from API (fetchalldata)
   const readOnlyData = {
@@ -131,6 +154,82 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
     }));
   };
 
+  // Handle marital status change - clear spouse fields if not married
+  const handleMaritalStatusChange = (value: string) => {
+    if (value !== "Married") {
+      setFormData(prev => ({
+        ...prev,
+        maritalStatus: value,
+        spouseName: "",
+        spouseProfession: "",
+        spouseContactNumber: "",
+      }));
+      setSpouseErrors({ spouseName: "", spouseProfession: "", spouseContactNumber: "" });
+    } else {
+      setFormData(prev => ({ ...prev, maritalStatus: value }));
+    }
+  };
+
+  // Validate spouse contact number
+  const validateSpouseContactNumber = (value: string): boolean => {
+    if (!value) {
+      setSpouseErrors(prev => ({ ...prev, spouseContactNumber: "Spouse contact number is required" }));
+      return false;
+    }
+    if (!/^\d+$/.test(value)) {
+      setSpouseErrors(prev => ({ ...prev, spouseContactNumber: "Only digits allowed" }));
+      return false;
+    }
+    if (value.length !== 11) {
+      setSpouseErrors(prev => ({ ...prev, spouseContactNumber: "Must be 11 digits" }));
+      return false;
+    }
+    if (!value.startsWith("01")) {
+      setSpouseErrors(prev => ({ ...prev, spouseContactNumber: "Must start with 01" }));
+      return false;
+    }
+    setSpouseErrors(prev => ({ ...prev, spouseContactNumber: "" }));
+    return true;
+  };
+
+  const handleSpouseContactChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 11);
+    setFormData(prev => ({ ...prev, spouseContactNumber: digitsOnly }));
+    if (digitsOnly) {
+      validateSpouseContactNumber(digitsOnly);
+    } else {
+      setSpouseErrors(prev => ({ ...prev, spouseContactNumber: "" }));
+    }
+  };
+
+  // Validate all spouse fields
+  const validateSpouseFields = (): boolean => {
+    if (!isMarried) return true;
+
+    let isValid = true;
+    const errors = { spouseName: "", spouseProfession: "", spouseContactNumber: "" };
+
+    if (!formData.spouseName.trim()) {
+      errors.spouseName = "Spouse Name is required";
+      isValid = false;
+    }
+
+    if (!formData.spouseProfession) {
+      errors.spouseProfession = "Select spouse profession";
+      isValid = false;
+    }
+
+    if (!formData.spouseContactNumber) {
+      errors.spouseContactNumber = "Spouse contact number is required";
+      isValid = false;
+    } else if (!validateSpouseContactNumber(formData.spouseContactNumber)) {
+      isValid = false;
+    }
+
+    setSpouseErrors(errors);
+    return isValid;
+  };
+
   // Save personal data via API
   const savePersonalData = useCallback(async () => {
     if (isReadOnly) return true;
@@ -138,6 +237,12 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
     // Validate emergency number before saving
     if (formData.emergencyContactNumber && !validateEmergencyNumber(formData.emergencyContactNumber)) {
       toast.error("Please enter a valid emergency contact number");
+      return false;
+    }
+
+    // Validate spouse fields if married
+    if (!validateSpouseFields()) {
+      toast.error("Please fill all spouse information correctly");
       return false;
     }
 
@@ -368,7 +473,7 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
           </Label>
           <Select
             value={formData.maritalStatus}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, maritalStatus: value }))}
+            onValueChange={handleMaritalStatusChange}
             disabled={isReadOnly}
           >
             <SelectTrigger className="bg-background border-input">
@@ -383,6 +488,96 @@ export const PersonalInfoStep = ({ onNext, data, isReadOnly = true }: PersonalIn
             </SelectContent>
           </Select>
         </div>
+
+        {/* Spouse Information Section - Only shown when Married */}
+        {isMarried && (
+          <div className="space-y-3 p-3 bg-muted/20 rounded-xl border border-border/50">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-foreground">
+                <BilingualText english="Spouse Information" bengali="স্বামী/স্ত্রীর তথ্য" />
+              </h4>
+              <span className="text-xs text-destructive">*</span>
+            </div>
+
+            {/* Spouse Name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">
+                <BilingualText english="Spouse Name" bengali="স্বামী/স্ত্রীর নাম" />
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Input
+                value={formData.spouseName}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, spouseName: e.target.value }));
+                  if (e.target.value.trim()) {
+                    setSpouseErrors(prev => ({ ...prev, spouseName: "" }));
+                  }
+                }}
+                placeholder="Enter spouse name"
+                className={`bg-background border-input ${spouseErrors.spouseName ? 'border-destructive' : ''}`}
+                readOnly={isReadOnly}
+              />
+              {spouseErrors.spouseName && (
+                <p className="text-xs text-destructive">{spouseErrors.spouseName}</p>
+              )}
+            </div>
+
+            {/* Spouse Profession */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">
+                <BilingualText english="Spouse Profession" bengali="স্বামী/স্ত্রীর পেশা" />
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Select
+                value={formData.spouseProfession}
+                onValueChange={(value) => {
+                  setFormData(prev => ({ ...prev, spouseProfession: value }));
+                  setSpouseErrors(prev => ({ ...prev, spouseProfession: "" }));
+                }}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger className={`bg-background border-input ${spouseErrors.spouseProfession ? 'border-destructive' : ''}`}>
+                  <SelectValue placeholder="-- Select Profession --" />
+                </SelectTrigger>
+                <SelectContent className="bg-card z-50">
+                  {SPOUSE_PROFESSION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {spouseErrors.spouseProfession && (
+                <p className="text-xs text-destructive">{spouseErrors.spouseProfession}</p>
+              )}
+            </div>
+
+            {/* Spouse Contact Number */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">
+                <BilingualText english="Spouse Contact Number" bengali="স্বামী/স্ত্রীর যোগাযোগ নম্বর" />
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Input
+                value={formData.spouseContactNumber}
+                onChange={(e) => handleSpouseContactChange(e.target.value)}
+                placeholder="01XXXXXXXXX"
+                className={`bg-background border-input ${spouseErrors.spouseContactNumber ? 'border-destructive' : ''}`}
+                readOnly={isReadOnly}
+                maxLength={11}
+              />
+              {spouseErrors.spouseContactNumber && (
+                <p className="text-xs text-destructive">{spouseErrors.spouseContactNumber}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                <BilingualText 
+                  english="11 digits, must start with 01" 
+                  bengali="১১ সংখ্যা, 01 দিয়ে শুরু হতে হবে" 
+                />
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-foreground">

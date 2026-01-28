@@ -14,6 +14,8 @@ export interface PersonalData {
   dob: string;
   maritalstatus: string;
   spousename?: string;
+  spouseprofession?: string;
+  spousecontactnumber?: string;
   gender: string;
   educationstatus?: string;
   tinnumber?: string;
