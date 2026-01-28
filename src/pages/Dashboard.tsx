@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +19,37 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { useApplicationData } from "@/contexts/ApplicationDataContext";
 import { getSessionContext, clearSession } from "@/services/apiClient";
+import { loanApplicationApi } from "@/services/loanApplicationApi";
 import mtbLogoFull from "@/assets/mtb-logo-full.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { applicationData, clearApplicationData } = useApplicationData();
+  const { applicationData, clearApplicationData, setDashboardData } = useApplicationData();
   const session = getSessionContext();
+  
+  // Fetch opened loan account data on page load
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await loanApplicationApi.getOpenedLoanAccountData({
+          loginid: session.loginId || "",
+          cif: session.cif || "",
+          mobilenumber: session.mobileNumber || "",
+          apicode: "",
+          modulename: "",
+        });
+
+        if (response.status === "200" && response.dataList) {
+          setDashboardData(response.dataList, response.newaccountopen === 1);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+        // Keep UI visible with empty state on error
+      }
+    };
+
+    fetchDashboardData();
+  }, [session.loginId, session.cif, session.mobileNumber, setDashboardData]);
   
   // Get dashboard data from context
   const dashboardData = applicationData.dashboardData;
