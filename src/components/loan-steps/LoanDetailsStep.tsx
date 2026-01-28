@@ -35,16 +35,23 @@ export const LoanDetailsStep = ({ onNext, data, isReadOnly = true }: LoanDetails
   const maxLoanAmount = 500000;
   const maxTenure = 60;
   const interestRate = data.interestRate ? parseFloat(data.interestRate) : 12;
+  const processingFee = data.processingFee ? parseFloat(data.processingFee) : 0.5;
+  
+  // Get today's day (DD)
+  const todayDay = new Date().getDate();
 
   const calculateEMI = () => {
     if (data.emi) return parseFloat(data.emi);
     
-    const principal = formData.loanAmount[0];
-    const tenure = formData.loanTenure[0];
-    const monthlyRate = interestRate / 12 / 100;
+    const P = formData.loanAmount[0]; // Principal
+    const R = interestRate; // Interest Rate (percentage)
+    const N = formData.loanTenure[0]; // Tenure in Months
     
-    const emi = (principal * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / 
-                (Math.pow(1 + monthlyRate, tenure) - 1);
+    // Monthly Rate: r = R / 100 / 12
+    const r = R / 100 / 12;
+    
+    // EMI = ((P * r * Math.pow(1 + r, N)) / (Math.pow(1 + r, N) - 1)) + ((P * 0.5 / 100) / N)
+    const emi = ((P * r * Math.pow(1 + r, N)) / (Math.pow(1 + r, N) - 1)) + ((P * processingFee / 100) / N);
     
     return Math.round(emi);
   };
@@ -116,6 +123,19 @@ export const LoanDetailsStep = ({ onNext, data, isReadOnly = true }: LoanDetails
             </SelectContent>
           </Select>
         )}
+      </div>
+
+      {/* Processing Fee - Read-only */}
+      <div className="space-y-3">
+        <Label className="bilingual-label">
+          <BilingualText english="Processing Fee (%)" bengali="প্রসেসিং ফি (%)" />
+        </Label>
+        <Input
+          value={`${processingFee}%`}
+          className="bg-muted/30"
+          readOnly
+          disabled
+        />
       </div>
 
       <Separator />
@@ -212,9 +232,43 @@ export const LoanDetailsStep = ({ onNext, data, isReadOnly = true }: LoanDetails
         )}
       </div>
 
+      {/* Repayment / EMI Date - Read-only */}
+      <div className="space-y-3">
+        <Label className="bilingual-label">
+          <BilingualText english="Repayment / EMI Date" bengali="পরিশোধ / ইএমআই তারিখ" />
+        </Label>
+        <Input
+          value={todayDay.toString()}
+          className="bg-muted/30"
+          readOnly
+          disabled
+        />
+      </div>
+
       <Separator />
 
-      {/* EMI Calculation */}
+      {/* Interest Rate - Read-only */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="bilingual-label">
+            <BilingualText english="Interest Rate (%)" bengali="সুদের হার (%)" />
+          </Label>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+            <Lock className="w-3 h-3" />
+            <span>Fixed</span>
+          </div>
+        </div>
+        <Input
+          value={`${interestRate}% per annum`}
+          className="bg-muted/30"
+          readOnly
+          disabled
+        />
+      </div>
+
+      <Separator />
+
+      {/* EMI Calculation - Monthly EMI Only */}
       <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -224,35 +278,13 @@ export const LoanDetailsStep = ({ onNext, data, isReadOnly = true }: LoanDetails
             </h4>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">
-                <BilingualText english="Monthly EMI" bengali="মাসিক ইএমআই" />
-              </p>
-              <p className="text-2xl font-bold text-primary">
-                ৳{calculateEMI().toLocaleString()}
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">
-                <BilingualText english="Interest Rate" bengali="সুদের হার" />
-              </p>
-              <p className="text-xl font-semibold">
-                {interestRate}% <span className="text-sm">
-                  <BilingualText english="per annum" bengali="বার্ষিক" />
-                </span>
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">
-                <BilingualText english="Total Amount" bengali="মোট পরিমাণ" />
-              </p>
-              <p className="text-xl font-semibold">
-                ৳{(calculateEMI() * formData.loanTenure[0]).toLocaleString()}
-              </p>
-            </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-1">
+              <BilingualText english="Monthly EMI" bengali="মাসিক ইএমআই" />
+            </p>
+            <p className="text-3xl font-bold text-primary">
+              ৳{calculateEMI().toLocaleString()}
+            </p>
           </div>
         </CardContent>
       </Card>
