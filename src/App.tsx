@@ -22,10 +22,10 @@ const App = () => (
     <LanguageProvider>
       <ApplicationDataProvider>
         <TooltipProvider>
-          <RefreshBlocker />
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <RefreshBlocker />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
